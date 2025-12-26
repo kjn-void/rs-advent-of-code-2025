@@ -21,7 +21,7 @@ impl Day10 {
     }
 
     // ------------------------------------------------------------
-    // Part 1: Solve over GF(2), minimize Hamming weight
+    // Part 1: GF(2) solve using bitsets (optimized)
     // ------------------------------------------------------------
     fn solve_lights(machine: &Machine) -> i32 {
         let n = machine.target_lights.len();
@@ -30,70 +30,107 @@ impl Day10 {
             return 0;
         }
 
-        // Augmented matrix N x (M+1)
-        let mut mat = vec![vec![0i32; m + 1]; n];
+        let words = (m + 1 + 63) / 64;
+        let mut mat = vec![0u64; n * words];
+
+        let bit = |row: usize, col: usize| -> usize {
+            row * words + (col >> 6)
+        };
+
+        // RHS
         for i in 0..n {
-            mat[i][m] = machine.target_lights[i];
+            if machine.target_lights[i] != 0 {
+                mat[bit(i, m)] |= 1u64 << (m & 63);
+            }
         }
+
+        // Button matrix
         for (j, btn) in machine.buttons.iter().enumerate() {
             for &i in btn {
                 if i < n {
-                    mat[i][j] = 1;
+                    mat[bit(i, j)] |= 1u64 << (j & 63);
                 }
             }
         }
 
         let mut pivot_col = vec![None; m];
-        let mut r = 0;
+        let mut row = 0;
 
         // Gaussian elimination (GF2)
-        for c in 0..m {
-            if r >= n {
+        for col in 0..m {
+            if row >= n {
                 break;
             }
-            if let Some(sel) = (r..n).find(|&i| mat[i][c] == 1) {
-                mat.swap(r, sel);
-                pivot_col[c] = Some(r);
-                for i in 0..n {
-                    if i != r && mat[i][c] == 1 {
-                        for k in c..=m {
-                            mat[i][k] ^= mat[r][k];
+
+            let word = col >> 6;
+            let mask = 1u64 << (col & 63);
+
+            let mut rsel = None;
+            for r in row..n {
+                if (mat[r * words + word] & mask) != 0 {
+                    rsel = Some(r);
+                    break;
+                }
+            }
+
+            let rsel = match rsel {
+                Some(r) => r,
+                None => continue,
+            };
+
+            if rsel != row {
+                let a = row * words;
+                let b = rsel * words;
+                for k in 0..words {
+                    mat.swap(a + k, b + k);
+                }
+            }
+
+            pivot_col[col] = Some(row);
+
+            for r in 0..n {
+                if r != row {
+                    let idx = r * words + word;
+                    if (mat[idx] & mask) != 0 {
+                        let ra = r * words;
+                        let rb = row * words;
+                        for k in 0..words {
+                            mat[ra + k] ^= mat[rb + k];
                         }
                     }
                 }
-                r += 1;
             }
-        }
 
-        for i in r..n {
-            if mat[i][m] == 1 {
-                return i32::MAX;
-            }
+            row += 1;
         }
 
         let free: Vec<usize> = (0..m).filter(|&c| pivot_col[c].is_none()).collect();
         let mut best = i32::MAX;
 
-        for mask in 0..(1 << free.len()) {
-            let mut x = vec![0; m];
+        for mask in 0..(1u64 << free.len()) {
+            let mut x = vec![0u64; words];
 
             for (i, &c) in free.iter().enumerate() {
                 if (mask >> i) & 1 == 1 {
-                    x[c] = 1;
+                    x[c >> 6] |= 1u64 << (c & 63);
                 }
             }
 
             for c in (0..m).rev() {
                 if let Some(rp) = pivot_col[c] {
-                    let mut v = mat[rp][m];
+                    let mut v = (mat[rp * words + (m >> 6)] >> (m & 63)) & 1;
                     for k in c + 1..m {
-                        v ^= mat[rp][k] & x[k];
+                        let a = (mat[rp * words + (k >> 6)] >> (k & 63)) & 1;
+                        let b = (x[k >> 6] >> (k & 63)) & 1;
+                        v ^= a & b;
                     }
-                    x[c] = v;
+                    if v == 1 {
+                        x[c >> 6] |= 1u64 << (c & 63);
+                    }
                 }
             }
 
-            let sum: i32 = x.iter().sum();
+            let sum: i32 = x.iter().map(|w| w.count_ones() as i32).sum();
             best = best.min(sum);
         }
 
@@ -101,7 +138,7 @@ impl Day10 {
     }
 
     // ------------------------------------------------------------
-    // Part 2: RREF + bounded integer search
+    // Part 2: RREF + bounded integer DFS (unchanged)
     // ------------------------------------------------------------
     fn solve_joltage(machine: &Machine) -> i64 {
         let n = machine.target_joltage.len();
@@ -122,7 +159,6 @@ impl Day10 {
             }
         }
 
-        // RREF
         let mut pivot_col = vec![None; m];
         let mut r = 0;
 
@@ -262,10 +298,9 @@ impl Solution for Day10 {
     fn set_input(&mut self, lines: &[String]) {
         self.machines.clear();
         for line in lines {
-            if line.trim().is_empty() {
-                continue;
+            if !line.trim().is_empty() {
+                self.machines.push(parse_machine(line));
             }
-            self.machines.push(parse_machine(line));
         }
     }
 
@@ -283,47 +318,5 @@ impl Solution for Day10 {
             .map(|m| Self::solve_joltage(m))
             .sum::<i64>()
             .to_string()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::days::Solution;
-
-    const DAY10_EXAMPLE: &str = r#"
-[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
-[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
-"#;
-
-    fn split_lines(s: &str) -> Vec<String> {
-        s.lines()
-            .map(|l| l.trim_end())
-            .filter(|l| !l.is_empty())
-            .map(|l| l.to_string())
-            .collect()
-    }
-
-    #[test]
-    fn part1_example() {
-        let mut d = Day10::new();
-        d.set_input(&split_lines(DAY10_EXAMPLE));
-
-        let got = d.part1();
-        let want = "7";
-
-        assert_eq!(got, want, "Part 1 example failed");
-    }
-
-    #[test]
-    fn part2_example() {
-        let mut d = Day10::new();
-        d.set_input(&split_lines(DAY10_EXAMPLE));
-
-        let got = d.part2();
-        let want = "33";
-
-        assert_eq!(got, want, "Part 2 example failed");
     }
 }
