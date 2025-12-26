@@ -40,15 +40,14 @@ impl Day09 {
             for j in i + 1..n {
                 let dx = (points[i].x - points[j].x).abs() as i64 + 1;
                 let dy = (points[i].y - points[j].y).abs() as i64 + 1;
-
-                let area = dx * dy;
-                best = best.max(area);
+                best = best.max(dx * dy);
             }
         }
         best
     }
+
     // ----------------------------------------------------------
-    // Part 2 helpers
+    // Geometry helpers
     // ----------------------------------------------------------
 
     fn build_edges(&mut self) {
@@ -81,8 +80,9 @@ impl Day09 {
         }
     }
 
+    /// Boundary check + integer-only inside test
     fn point_inside_or_on(&self, p: Pt) -> bool {
-        // Boundary check
+        // Boundary check (unchanged)
         for e in &self.edges {
             if e.hor {
                 if p.y == e.y1 && p.x >= e.x1 && p.x <= e.x2 {
@@ -94,30 +94,26 @@ impl Day09 {
                 }
             }
         }
-        Self::point_in_polygon_ray_cast(p, &self.reds)
+
+        // Integer vertical-edge crossing (no floats)
+        self.point_inside_fast(p)
     }
 
-    fn point_in_polygon_ray_cast(p: Pt, poly: &[Pt]) -> bool {
+    /// Integer-only point-in-polygon for orthogonal polygons
+    fn point_inside_fast(&self, p: Pt) -> bool {
         let mut inside = false;
-        let n = poly.len();
-        let mut j = n - 1;
 
-        for i in 0..n {
-            let pi = poly[i];
-            let pj = poly[j];
-
-            if (pi.y > p.y) != (pj.y > p.y) {
-                let x_intersect = (pj.x as f64)
-                    + ((p.y - pj.y) as f64)
-                        * ((pi.x - pj.x) as f64)
-                        / ((pi.y - pj.y) as f64);
-
-                if (p.x as f64) < x_intersect {
-                    inside = !inside;
-                }
+        for e in &self.edges {
+            if e.hor {
+                continue;
             }
-            j = i;
+
+            // Vertical edge at x = e.x1, spanning [y1, y2)
+            if p.y >= e.y1 && p.y < e.y2 && p.x < e.x1 {
+                inside = !inside;
+            }
         }
+
         inside
     }
 
@@ -192,10 +188,12 @@ impl Solution for Day09 {
                 let y1 = a.y.min(b.y);
                 let y2 = a.y.max(b.y);
 
-                let area =
-                    (x2 - x1 + 1) as i64 * (y2 - y1 + 1) as i64;
-
+                let area = (x2 - x1 + 1) as i64 * (y2 - y1 + 1) as i64;
                 if area <= best {
+                    continue;
+                }
+
+                if self.rectangle_cut_by_polygon(x1, y1, x2, y2) {
                     continue;
                 }
 
@@ -203,10 +201,6 @@ impl Solution for Day09 {
                 let c4 = Pt { x: x2, y: y1 };
 
                 if !self.point_inside_or_on(c3) || !self.point_inside_or_on(c4) {
-                    continue;
-                }
-
-                if self.rectangle_cut_by_polygon(x1, y1, x2, y2) {
                     continue;
                 }
 
