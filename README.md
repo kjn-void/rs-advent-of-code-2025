@@ -178,20 +178,20 @@ benches/bench_days.rs
 
 ## 📊 Benchmark Summary — Apple M4 (darwin/arm64)
 
-| Day | SetInput (µs) | Part1 (µs) | Part2 (µs) | Full (µs) |
-| --- | ------------- | ---------- | ---------- | --------- |
-| 01  |               |            |            | 589       |
-| 02  |               |            |            | 15        |
-| 03  |               |            |            | 56        |
-| 04  |               |            |            | 256       |
-| 05  |               |            |            | 18        |
-| 06  |               |            |            | 183       |
-| 07  |               |            |            | 28        |
-| 08  |               |            |            | 11_000    |
-| 09  |               |            |            | 6_800     |
-| 10  |               |            |            | 70_000    |
-| 11  |               |            |            | 268       |
-| 12  |               |            |            | 206       |
+| Day | Full pipeline (µs) |
+| --- | ------------------ |
+| 01  | 589                |
+| 02  | 15                 |
+| 03  | 56                 |
+| 04  | 256                |
+| 05  | 18                 |
+| 06  | 183                |
+| 07  | 28                 |
+| 08  | 11_000             |
+| 09  | 6_800              |
+| 10  | 70_000             |
+| 11  | 268                |
+| 12  | 206                |
 
 ---
 
@@ -201,6 +201,3 @@ benches/bench_days.rs
 - Explicit input ownership
 - Fast iteration & benchmarking
 - Identical semantics to Go version
-- Easy extension to Day 25+
-
----
