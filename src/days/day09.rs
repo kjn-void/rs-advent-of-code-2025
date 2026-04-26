@@ -12,12 +12,13 @@ struct Edge {
     y1: i32,
     x2: i32,
     y2: i32,
-    hor: bool,
 }
 
 pub struct Day09 {
     reds: Vec<Pt>,
     edges: Vec<Edge>,
+    hor_edges: Vec<Edge>,
+    vert_edges: Vec<Edge>,
 }
 
 impl Day09 {
@@ -25,6 +26,8 @@ impl Day09 {
         Self {
             reds: Vec::new(),
             edges: Vec::new(),
+            hor_edges: Vec::new(),
+            vert_edges: Vec::new(),
         }
     }
 
@@ -53,6 +56,8 @@ impl Day09 {
     fn build_edges(&mut self) {
         let n = self.reds.len();
         self.edges.clear();
+        self.hor_edges.clear();
+        self.vert_edges.clear();
 
         for i in 0..n {
             let a = self.reds[i];
@@ -60,38 +65,38 @@ impl Day09 {
 
             if a.y == b.y {
                 let (x1, x2) = if a.x <= b.x { (a.x, b.x) } else { (b.x, a.x) };
-                self.edges.push(Edge {
+                let edge = Edge {
                     x1,
                     y1: a.y,
                     x2,
                     y2: a.y,
-                    hor: true,
-                });
+                };
+                self.edges.push(edge);
+                self.hor_edges.push(edge);
             } else {
                 let (y1, y2) = if a.y <= b.y { (a.y, b.y) } else { (b.y, a.y) };
-                self.edges.push(Edge {
+                let edge = Edge {
                     x1: a.x,
                     y1,
                     x2: a.x,
                     y2,
-                    hor: false,
-                });
+                };
+                self.edges.push(edge);
+                self.vert_edges.push(edge);
             }
         }
     }
 
     /// Boundary check + integer-only inside test
     fn point_inside_or_on(&self, p: Pt) -> bool {
-        // Boundary check (unchanged)
-        for e in &self.edges {
-            if e.hor {
-                if p.y == e.y1 && p.x >= e.x1 && p.x <= e.x2 {
-                    return true;
-                }
-            } else {
-                if p.x == e.x1 && p.y >= e.y1 && p.y <= e.y2 {
-                    return true;
-                }
+        for e in &self.hor_edges {
+            if p.y == e.y1 && p.x >= e.x1 && p.x <= e.x2 {
+                return true;
+            }
+        }
+        for e in &self.vert_edges {
+            if p.x == e.x1 && p.y >= e.y1 && p.y <= e.y2 {
+                return true;
             }
         }
 
@@ -103,11 +108,7 @@ impl Day09 {
     fn point_inside_fast(&self, p: Pt) -> bool {
         let mut inside = false;
 
-        for e in &self.edges {
-            if e.hor {
-                continue;
-            }
-
+        for e in &self.vert_edges {
             // Vertical edge at x = e.x1, spanning [y1, y2)
             if p.y >= e.y1 && p.y < e.y2 && p.x < e.x1 {
                 inside = !inside;
@@ -122,23 +123,22 @@ impl Day09 {
             return false;
         }
 
-        for e in &self.edges {
-            if e.hor {
-                let y = e.y1;
-                if y <= y1 || y >= y2 {
-                    continue;
-                }
-                if e.x1.max(x1) < e.x2.min(x2) {
-                    return true;
-                }
-            } else {
-                let x = e.x1;
-                if x <= x1 || x >= x2 {
-                    continue;
-                }
-                if e.y1.max(y1) < e.y2.min(y2) {
-                    return true;
-                }
+        for e in &self.hor_edges {
+            let y = e.y1;
+            if y <= y1 || y >= y2 {
+                continue;
+            }
+            if e.x1.max(x1) < e.x2.min(x2) {
+                return true;
+            }
+        }
+        for e in &self.vert_edges {
+            let x = e.x1;
+            if x <= x1 || x >= x2 {
+                continue;
+            }
+            if e.y1.max(y1) < e.y2.min(y2) {
+                return true;
             }
         }
         false
@@ -149,6 +149,8 @@ impl Solution for Day09 {
     fn set_input(&mut self, lines: &[String]) {
         self.reds.clear();
         self.edges.clear();
+        self.hor_edges.clear();
+        self.vert_edges.clear();
 
         for line in lines {
             let line = line.trim();
@@ -218,19 +220,10 @@ mod tests {
     use crate::days::Solution;
 
     fn example_input() -> Vec<String> {
-        vec![
-            "7,1",
-            "11,1",
-            "11,7",
-            "9,7",
-            "9,5",
-            "2,5",
-            "2,3",
-            "7,3",
-        ]
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect()
+        vec!["7,1", "11,1", "11,7", "9,7", "9,5", "2,5", "2,3", "7,3"]
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     #[test]

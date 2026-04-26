@@ -49,7 +49,7 @@ impl Day08 {
         }
 
         let mut edges = Vec::with_capacity(n * (n - 1) / 2);
-        for i in 0..n {
+        for i in 0..n - 1 {
             for j in i + 1..n {
                 edges.push(Edge {
                     dist2: Self::squared_dist(points[i], points[j]),
@@ -59,7 +59,7 @@ impl Day08 {
             }
         }
 
-        edges.sort_by(|a, b| a.dist2.cmp(&b.dist2));
+        radix_sort_edges(&mut edges);
         edges
     }
 
@@ -81,13 +81,16 @@ impl Day08 {
             uf.union(e.i, e.j);
         }
 
-        let mut comp_map = std::collections::HashMap::<usize, usize>::new();
+        let mut seen = vec![false; n];
+        let mut sizes = Vec::with_capacity(n);
         for i in 0..n {
             let r = uf.find(i);
-            comp_map.insert(r, uf.size[r]);
+            if !seen[r] {
+                seen[r] = true;
+                sizes.push(uf.size[r]);
+            }
         }
 
-        let mut sizes: Vec<usize> = comp_map.values().copied().collect();
         sizes.sort_by(|a, b| b.cmp(a)); // descending
         sizes
     }
@@ -114,6 +117,44 @@ impl Day08 {
 
         last
     }
+}
+
+fn radix_sort_edges(edges: &mut [Edge]) {
+    if edges.len() < 2 {
+        return;
+    }
+
+    const RADIX_BITS: usize = 16;
+    const BUCKETS: usize = 1 << RADIX_BITS;
+    const MASK: u64 = (BUCKETS as u64) - 1;
+
+    let mut src = edges.to_vec();
+    let mut dst = vec![edges[0]; edges.len()];
+    let mut counts = vec![0usize; BUCKETS];
+
+    for shift in (0..64).step_by(RADIX_BITS) {
+        counts.fill(0);
+        for edge in src.iter() {
+            counts[((edge.dist2 as u64 >> shift) & MASK) as usize] += 1;
+        }
+
+        let mut sum = 0;
+        for count in counts.iter_mut() {
+            let current = *count;
+            *count = sum;
+            sum += current;
+        }
+
+        for edge in src.iter().copied() {
+            let bucket = ((edge.dist2 as u64 >> shift) & MASK) as usize;
+            dst[counts[bucket]] = edge;
+            counts[bucket] += 1;
+        }
+
+        std::mem::swap(&mut src, &mut dst);
+    }
+
+    edges.copy_from_slice(&src);
 }
 
 // -----------------------------------------------------------

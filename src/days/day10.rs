@@ -33,9 +33,7 @@ impl Day10 {
         let words = (m + 1 + 63) / 64;
         let mut mat = vec![0u64; n * words];
 
-        let bit = |row: usize, col: usize| -> usize {
-            row * words + (col >> 6)
-        };
+        let bit = |row: usize, col: usize| -> usize { row * words + (col >> 6) };
 
         // RHS
         for i in 0..n {
@@ -138,7 +136,7 @@ impl Day10 {
     }
 
     // ------------------------------------------------------------
-    // Part 2: RREF + bounded integer DFS (unchanged)
+    // Part 2: RREF + bounded integer DFS
     // ------------------------------------------------------------
     fn solve_joltage(machine: &Machine) -> i64 {
         let n = machine.target_joltage.len();
@@ -147,96 +145,144 @@ impl Day10 {
             return 0;
         }
 
-        let mut mat = vec![vec![0.0f64; m + 1]; n];
-        for i in 0..n {
-            mat[i][m] = machine.target_joltage[i] as f64;
+        let cols = m + 1;
+        let mut mat = vec![0.0f64; n * cols];
+        for (i, &target) in machine.target_joltage.iter().enumerate() {
+            mat[i * cols + m] = target as f64;
         }
         for (j, btn) in machine.buttons.iter().enumerate() {
             for &i in btn {
                 if i < n {
-                    mat[i][j] = 1.0;
+                    mat[i * cols + j] = 1.0;
                 }
             }
         }
 
-        let mut pivot_col = vec![None; m];
+        let mut pivot_row_for_col = vec![usize::MAX; m];
+        let mut pivot_cols = Vec::with_capacity(n.min(m));
         let mut r = 0;
 
         for c in 0..m {
             if r >= n {
                 break;
             }
-            if let Some(sel) = (r..n).find(|&i| mat[i][c].abs() > 1e-9) {
-                mat.swap(r, sel);
-                let div = mat[r][c];
+            if let Some(sel) = (r..n).find(|&i| mat[i * cols + c].abs() > 1e-9) {
+                if sel != r {
+                    for k in 0..=m {
+                        mat.swap(r * cols + k, sel * cols + k);
+                    }
+                }
+
+                let row_base = r * cols;
+                pivot_row_for_col[c] = r;
+                pivot_cols.push(c);
+
+                let div = mat[row_base + c];
                 for k in c..=m {
-                    mat[r][k] /= div;
+                    mat[row_base + k] /= div;
                 }
                 for i in 0..n {
                     if i != r {
-                        let f = mat[i][c];
+                        let base = i * cols;
+                        let f = mat[base + c];
                         if f.abs() > 1e-9 {
                             for k in c..=m {
-                                mat[i][k] -= f * mat[r][k];
+                                mat[base + k] -= f * mat[row_base + k];
                             }
                         }
                     }
                 }
-                pivot_col[c] = Some(r);
                 r += 1;
             }
         }
 
-        let free: Vec<usize> = (0..m).filter(|&c| pivot_col[c].is_none()).collect();
-        let bound = machine.target_joltage.iter().max().copied().unwrap_or(0) + 1;
+        let mut free: Vec<usize> = (0..m)
+            .filter(|&c| pivot_row_for_col[c] == usize::MAX)
+            .collect();
+
+        let mut free_bounds: Vec<i32> = free
+            .iter()
+            .map(|&col| {
+                machine.buttons[col]
+                    .iter()
+                    .filter_map(|&idx| machine.target_joltage.get(idx).copied())
+                    .min()
+                    .unwrap_or(0)
+            })
+            .collect();
+
+        let mut order: Vec<usize> = (0..free.len()).collect();
+        order.sort_unstable_by_key(|&i| free_bounds[i]);
+        free = order.iter().map(|&i| free[i]).collect();
+        free_bounds = order.iter().map(|&i| free_bounds[i]).collect();
+
+        let free_len = free.len();
+        let pivot_count = pivot_cols.len();
+        let mut pivot_rhs = vec![0.0; pivot_count];
+        let mut pivot_free_coeff = vec![0.0; pivot_count * free_len];
+
+        for (p, &col) in pivot_cols.iter().enumerate() {
+            let row_base = pivot_row_for_col[col] * cols;
+            pivot_rhs[p] = mat[row_base + m];
+            let coeff_base = p * free_len;
+            for (f, &free_col) in free.iter().enumerate() {
+                pivot_free_coeff[coeff_base + f] = mat[row_base + free_col];
+            }
+        }
 
         let mut best = i64::MAX;
-        let mut x = vec![0.0; m];
+        let mut free_values = vec![0i32; free_len];
 
         fn dfs(
             idx: usize,
-            free: &[usize],
-            mat: &[Vec<f64>],
-            pivot_col: &[Option<usize>],
-            x: &mut [f64],
+            free_bounds: &[i32],
+            free_values: &mut [i32],
+            pivot_rhs: &[f64],
+            pivot_free_coeff: &[f64],
             cur: i64,
             best: &mut i64,
-            bound: i32,
         ) {
             if cur >= *best {
                 return;
             }
-            if idx == free.len() {
+            if idx == free_bounds.len() {
                 let mut total = cur;
-                for c in 0..x.len() {
-                    if let Some(r) = pivot_col[c] {
-                        let mut v = mat[r][x.len()];
-                        for k in c + 1..x.len() {
-                            v -= mat[r][k] * x[k];
+                let free_len = free_bounds.len();
+
+                for (p, &rhs) in pivot_rhs.iter().enumerate() {
+                    let mut v = rhs;
+                    let coeff_base = p * free_len;
+                    for (f, &x) in free_values.iter().enumerate() {
+                        let coeff = pivot_free_coeff[coeff_base + f];
+                        if coeff.abs() > 1e-9 {
+                            v -= coeff * f64::from(x);
                         }
-                        let iv = v.round();
-                        if (v - iv).abs() > 1e-6 || iv < 0.0 {
-                            return;
-                        }
-                        total += iv as i64;
+                    }
+
+                    let iv = v.round();
+                    if (v - iv).abs() > 1e-6 || iv < 0.0 {
+                        return;
+                    }
+                    total += iv as i64;
+                    if total >= *best {
+                        return;
                     }
                 }
+
                 *best = (*best).min(total);
                 return;
             }
 
-            let c = free[idx];
-            for v in 0..=bound {
-                x[c] = v as f64;
+            for v in 0..=free_bounds[idx] {
+                free_values[idx] = v;
                 dfs(
                     idx + 1,
-                    free,
-                    mat,
-                    pivot_col,
-                    x,
+                    free_bounds,
+                    free_values,
+                    pivot_rhs,
+                    pivot_free_coeff,
                     cur + v as i64,
                     best,
-                    bound,
                 );
                 if cur + v as i64 >= *best {
                     break;
@@ -244,7 +290,15 @@ impl Day10 {
             }
         }
 
-        dfs(0, &free, &mat, &pivot_col, &mut x, 0, &mut best, bound);
+        dfs(
+            0,
+            &free_bounds,
+            &mut free_values,
+            &pivot_rhs,
+            &pivot_free_coeff,
+            0,
+            &mut best,
+        );
         best
     }
 }
