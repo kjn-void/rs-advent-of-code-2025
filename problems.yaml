@@ -1,0 +1,36 @@
+1:
+  title: Secret Entrance
+  description: Count how often a circular safe dial lands on zero.
+2:
+  title: Gift Shop
+  description: Sum invalid product IDs made from repeated digit blocks.
+3:
+  title: Lobby
+  description: Choose batteries from each bank to maximize total joltage.
+4:
+  title: Printing Department
+  description: Find accessible paper rolls based on nearby roll counts.
+5:
+  title: Cafeteria
+  description: Check ingredient IDs against merged fresh-ID ranges.
+6:
+  title: Trash Compactor
+  description: Evaluate vertically arranged arithmetic problems.
+7:
+  title: Laboratories
+  description: Trace tachyon beams through splitters in a manifold.
+8:
+  title: Playground
+  description: Connect nearby 3D junction boxes and measure circuit sizes.
+9:
+  title: Movie Theater
+  description: Find the largest rectangle using red tiles as corners.
+10:
+  title: Factory
+  description: Determine minimum button presses for machine initialization.
+11:
+  title: Reactor
+  description: Count directed paths through devices to the reactor output.
+12:
+  title: Christmas Tree Farm
+  description: Check whether requested present shapes fit under trees.

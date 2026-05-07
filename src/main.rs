@@ -1,8 +1,12 @@
 use aoc2025::{aocnet, days};
 use clap::Parser;
+use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
+
+const PROBLEMS_YAML: &str = include_str!("../problems.yaml");
 
 #[derive(Parser, Debug)]
 #[command(name = "aoc2025")]
@@ -18,6 +22,16 @@ struct Args {
     /// Run only one part (1 or 2). If omitted, runs both.
     #[arg(long)]
     part: Option<u8>,
+
+    /// Show a brief description before solving.
+    #[arg(short, long)]
+    verbose: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct ProblemBrief {
+    title: String,
+    description: String,
 }
 
 fn input_path(day: u32) -> PathBuf {
@@ -83,6 +97,23 @@ fn fetch_or_read_input(day: u32, force_fetch: bool) -> io::Result<Vec<String>> {
     })
 }
 
+fn print_problem_brief(day: u32) -> io::Result<()> {
+    let briefs: BTreeMap<u32, ProblemBrief> = serde_yaml::from_str(PROBLEMS_YAML).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Failed to parse problems.yaml: {e}"),
+        )
+    })?;
+
+    if let Some(brief) = briefs.get(&day) {
+        println!("Day {day}: {}", brief.title);
+        println!("{}", brief.description);
+        println!();
+    }
+
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
     let args = Args::parse();
 
@@ -95,6 +126,10 @@ fn main() -> io::Result<()> {
             return Ok(());
         }
     };
+
+    if args.verbose {
+        print_problem_brief(args.day)?;
+    }
 
     solver.set_input(&lines);
 
