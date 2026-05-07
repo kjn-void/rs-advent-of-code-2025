@@ -22,77 +22,77 @@ impl Day10 {
     // ------------------------------------------------------------
     // Part 1: GF(2) solve using bitsets (optimized)
     // ------------------------------------------------------------
-    fn solve_lights(machine: &Machine) -> i32 {
-        let n = machine.target_lights.len();
-        let m = machine.buttons.len();
-        if n == 0 || m == 0 {
+    fn fewest_light_presses(machine: &Machine) -> i32 {
+        let light_count = machine.target_lights.len();
+        let button_count = machine.buttons.len();
+        if light_count == 0 || button_count == 0 {
             return 0;
         }
 
-        let words = (m + 1).div_ceil(64);
-        let mut mat = vec![0u64; n * words];
+        let words = (button_count + 1).div_ceil(64);
+        let mut matrix = vec![0u64; light_count * words];
 
         let bit = |row: usize, col: usize| -> usize { row * words + (col >> 6) };
 
         // RHS
-        for i in 0..n {
-            if machine.target_lights[i] != 0 {
-                mat[bit(i, m)] |= 1u64 << (m & 63);
+        for light in 0..light_count {
+            if machine.target_lights[light] != 0 {
+                matrix[bit(light, button_count)] |= 1u64 << (button_count & 63);
             }
         }
 
         // Button matrix
-        for (j, btn) in machine.buttons.iter().enumerate() {
-            for &i in btn {
-                if i < n {
-                    mat[bit(i, j)] |= 1u64 << (j & 63);
+        for (button, toggled_lights) in machine.buttons.iter().enumerate() {
+            for &light in toggled_lights {
+                if light < light_count {
+                    matrix[bit(light, button)] |= 1u64 << (button & 63);
                 }
             }
         }
 
-        let mut pivot_col = vec![None; m];
+        let mut pivot_row_for_button = vec![None; button_count];
         let mut row = 0;
 
         // Gaussian elimination (GF2)
-        for (col, pivot) in pivot_col.iter_mut().enumerate() {
-            if row >= n {
+        for (button, pivot) in pivot_row_for_button.iter_mut().enumerate() {
+            if row >= light_count {
                 break;
             }
 
-            let word = col >> 6;
-            let mask = 1u64 << (col & 63);
+            let word = button >> 6;
+            let mask = 1u64 << (button & 63);
 
-            let mut rsel = None;
-            for r in row..n {
-                if (mat[r * words + word] & mask) != 0 {
-                    rsel = Some(r);
+            let mut selected_row = None;
+            for candidate_row in row..light_count {
+                if (matrix[candidate_row * words + word] & mask) != 0 {
+                    selected_row = Some(candidate_row);
                     break;
                 }
             }
 
-            let rsel = match rsel {
-                Some(r) => r,
+            let selected_row = match selected_row {
+                Some(row) => row,
                 None => continue,
             };
 
-            if rsel != row {
+            if selected_row != row {
                 let a = row * words;
-                let b = rsel * words;
-                for k in 0..words {
-                    mat.swap(a + k, b + k);
+                let b = selected_row * words;
+                for word_offset in 0..words {
+                    matrix.swap(a + word_offset, b + word_offset);
                 }
             }
 
             *pivot = Some(row);
 
-            for r in 0..n {
-                if r != row {
-                    let idx = r * words + word;
-                    if (mat[idx] & mask) != 0 {
-                        let ra = r * words;
-                        let rb = row * words;
-                        for k in 0..words {
-                            mat[ra + k] ^= mat[rb + k];
+            for target_row in 0..light_count {
+                if target_row != row {
+                    let idx = target_row * words + word;
+                    if (matrix[idx] & mask) != 0 {
+                        let target_base = target_row * words;
+                        let pivot_base = row * words;
+                        for word_offset in 0..words {
+                            matrix[target_base + word_offset] ^= matrix[pivot_base + word_offset];
                         }
                     }
                 }
@@ -101,33 +101,39 @@ impl Day10 {
             row += 1;
         }
 
-        let free: Vec<usize> = (0..m).filter(|&c| pivot_col[c].is_none()).collect();
+        let free_buttons: Vec<usize> = (0..button_count)
+            .filter(|&button| pivot_row_for_button[button].is_none())
+            .collect();
         let mut best = i32::MAX;
 
-        for mask in 0..(1u64 << free.len()) {
-            let mut x = vec![0u64; words];
+        for mask in 0..(1u64 << free_buttons.len()) {
+            let mut pressed = vec![0u64; words];
 
-            for (i, &c) in free.iter().enumerate() {
-                if (mask >> i) & 1 == 1 {
-                    x[c >> 6] |= 1u64 << (c & 63);
+            for (index, &button) in free_buttons.iter().enumerate() {
+                if (mask >> index) & 1 == 1 {
+                    pressed[button >> 6] |= 1u64 << (button & 63);
                 }
             }
 
-            for c in (0..m).rev() {
-                if let Some(rp) = pivot_col[c] {
-                    let mut v = (mat[rp * words + (m >> 6)] >> (m & 63)) & 1;
-                    for k in c + 1..m {
-                        let a = (mat[rp * words + (k >> 6)] >> (k & 63)) & 1;
-                        let b = (x[k >> 6] >> (k & 63)) & 1;
-                        v ^= a & b;
+            for button in (0..button_count).rev() {
+                if let Some(pivot_row) = pivot_row_for_button[button] {
+                    let mut value = (matrix[pivot_row * words + (button_count >> 6)]
+                        >> (button_count & 63))
+                        & 1;
+                    for later_button in button + 1..button_count {
+                        let coefficient = (matrix[pivot_row * words + (later_button >> 6)]
+                            >> (later_button & 63))
+                            & 1;
+                        let later_pressed = (pressed[later_button >> 6] >> (later_button & 63)) & 1;
+                        value ^= coefficient & later_pressed;
                     }
-                    if v == 1 {
-                        x[c >> 6] |= 1u64 << (c & 63);
+                    if value == 1 {
+                        pressed[button >> 6] |= 1u64 << (button & 63);
                     }
                 }
             }
 
-            let sum: i32 = x.iter().map(|w| w.count_ones() as i32).sum();
+            let sum: i32 = pressed.iter().map(|w| w.count_ones() as i32).sum();
             best = best.min(sum);
         }
 
@@ -137,69 +143,71 @@ impl Day10 {
     // ------------------------------------------------------------
     // Part 2: RREF + bounded integer DFS
     // ------------------------------------------------------------
-    fn solve_joltage(machine: &Machine) -> i64 {
-        let n = machine.target_joltage.len();
-        let m = machine.buttons.len();
-        if n == 0 || m == 0 {
+    fn fewest_joltage_presses(machine: &Machine) -> i64 {
+        let light_count = machine.target_joltage.len();
+        let button_count = machine.buttons.len();
+        if light_count == 0 || button_count == 0 {
             return 0;
         }
 
-        let cols = m + 1;
-        let mut mat = vec![0.0f64; n * cols];
+        let cols = button_count + 1;
+        let mut matrix = vec![0.0f64; light_count * cols];
         for (i, &target) in machine.target_joltage.iter().enumerate() {
-            mat[i * cols + m] = target as f64;
+            matrix[i * cols + button_count] = target as f64;
         }
         for (j, btn) in machine.buttons.iter().enumerate() {
             for &i in btn {
-                if i < n {
-                    mat[i * cols + j] = 1.0;
+                if i < light_count {
+                    matrix[i * cols + j] = 1.0;
                 }
             }
         }
 
-        let mut pivot_row_for_col = vec![usize::MAX; m];
-        let mut pivot_cols = Vec::with_capacity(n.min(m));
-        let mut r = 0;
+        let mut pivot_row_for_col = vec![usize::MAX; button_count];
+        let mut pivot_cols = Vec::with_capacity(light_count.min(button_count));
+        let mut pivot_row = 0;
 
-        for c in 0..m {
-            if r >= n {
+        for col in 0..button_count {
+            if pivot_row >= light_count {
                 break;
             }
-            if let Some(sel) = (r..n).find(|&i| mat[i * cols + c].abs() > 1e-9) {
-                if sel != r {
-                    for k in 0..=m {
-                        mat.swap(r * cols + k, sel * cols + k);
+            if let Some(selected_row) =
+                (pivot_row..light_count).find(|&row| matrix[row * cols + col].abs() > 1e-9)
+            {
+                if selected_row != pivot_row {
+                    for k in 0..=button_count {
+                        matrix.swap(pivot_row * cols + k, selected_row * cols + k);
                     }
                 }
 
-                let row_base = r * cols;
-                pivot_row_for_col[c] = r;
-                pivot_cols.push(c);
+                let row_base = pivot_row * cols;
+                pivot_row_for_col[col] = pivot_row;
+                pivot_cols.push(col);
 
-                let div = mat[row_base + c];
-                for k in c..=m {
-                    mat[row_base + k] /= div;
+                let divisor = matrix[row_base + col];
+                for k in col..=button_count {
+                    matrix[row_base + k] /= divisor;
                 }
-                for i in 0..n {
-                    if i != r {
-                        let base = i * cols;
-                        let f = mat[base + c];
-                        if f.abs() > 1e-9 {
-                            for k in c..=m {
-                                mat[base + k] -= f * mat[row_base + k];
+                for row in 0..light_count {
+                    if row != pivot_row {
+                        let base = row * cols;
+                        let factor = matrix[base + col];
+                        if factor.abs() > 1e-9 {
+                            for k in col..=button_count {
+                                matrix[base + k] -= factor * matrix[row_base + k];
                             }
                         }
                     }
                 }
-                r += 1;
+                pivot_row += 1;
             }
         }
 
-        let mut free: Vec<usize> = (0..m)
-            .filter(|&c| pivot_row_for_col[c] == usize::MAX)
+        let mut free_cols: Vec<usize> = (0..button_count)
+            .filter(|&col| pivot_row_for_col[col] == usize::MAX)
             .collect();
 
-        let mut free_bounds: Vec<i32> = free
+        let mut free_bounds: Vec<i32> = free_cols
             .iter()
             .map(|&col| {
                 machine.buttons[col]
@@ -210,22 +218,22 @@ impl Day10 {
             })
             .collect();
 
-        let mut order: Vec<usize> = (0..free.len()).collect();
+        let mut order: Vec<usize> = (0..free_cols.len()).collect();
         order.sort_unstable_by_key(|&i| free_bounds[i]);
-        free = order.iter().map(|&i| free[i]).collect();
+        free_cols = order.iter().map(|&i| free_cols[i]).collect();
         free_bounds = order.iter().map(|&i| free_bounds[i]).collect();
 
-        let free_len = free.len();
+        let free_len = free_cols.len();
         let pivot_count = pivot_cols.len();
         let mut pivot_rhs = vec![0.0; pivot_count];
         let mut pivot_free_coeff = vec![0.0; pivot_count * free_len];
 
         for (p, &col) in pivot_cols.iter().enumerate() {
             let row_base = pivot_row_for_col[col] * cols;
-            pivot_rhs[p] = mat[row_base + m];
+            pivot_rhs[p] = matrix[row_base + button_count];
             let coeff_base = p * free_len;
-            for (f, &free_col) in free.iter().enumerate() {
-                pivot_free_coeff[coeff_base + f] = mat[row_base + free_col];
+            for (free_index, &free_col) in free_cols.iter().enumerate() {
+                pivot_free_coeff[coeff_base + free_index] = matrix[row_base + free_col];
             }
         }
 
@@ -316,20 +324,20 @@ fn parse_machine(line: &str) -> Machine {
     let mut parts = line.split_whitespace();
 
     let lights_str = parts.next().unwrap();
-    let lights = lights_str
+    let target_lights = lights_str
         .trim_matches(&['[', ']'][..])
         .chars()
         .map(|c| if c == '#' { 1 } else { 0 })
         .collect::<Vec<_>>();
 
     let mut buttons = Vec::new();
-    let mut joltage = Vec::new();
+    let mut target_joltage = Vec::new();
 
     for p in parts {
         if p.starts_with('(') {
             buttons.push(parse_list(p));
         } else if p.starts_with('{') {
-            joltage = p
+            target_joltage = p
                 .trim_matches(&['{', '}'][..])
                 .split(',')
                 .filter_map(|x| x.trim().parse::<i32>().ok())
@@ -338,8 +346,8 @@ fn parse_machine(line: &str) -> Machine {
     }
 
     Machine {
-        target_lights: lights,
-        target_joltage: joltage,
+        target_lights,
+        target_joltage,
         buttons,
     }
 }
@@ -360,7 +368,7 @@ impl Solution for Day10 {
     fn part1(&mut self) -> String {
         self.machines
             .par_iter()
-            .map(|m| Self::solve_lights(m) as i64)
+            .map(|machine| Self::fewest_light_presses(machine) as i64)
             .sum::<i64>()
             .to_string()
     }
@@ -368,7 +376,7 @@ impl Solution for Day10 {
     fn part2(&mut self) -> String {
         self.machines
             .par_iter()
-            .map(Self::solve_joltage)
+            .map(Self::fewest_joltage_presses)
             .sum::<i64>()
             .to_string()
     }

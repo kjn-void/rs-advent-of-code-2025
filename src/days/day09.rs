@@ -1,13 +1,13 @@
 use crate::days::Solution;
 
 #[derive(Clone, Copy)]
-struct Pt {
+struct Point {
     x: i32,
     y: i32,
 }
 
 #[derive(Clone, Copy)]
-struct Edge {
+struct Segment {
     x1: i32,
     y1: i32,
     x2: i32,
@@ -16,10 +16,10 @@ struct Edge {
 
 #[derive(Default)]
 pub struct Day09 {
-    reds: Vec<Pt>,
-    edges: Vec<Edge>,
-    hor_edges: Vec<Edge>,
-    vert_edges: Vec<Edge>,
+    red_tiles: Vec<Point>,
+    boundary: Vec<Segment>,
+    horizontal_edges: Vec<Segment>,
+    vertical_edges: Vec<Segment>,
 }
 
 impl Day09 {
@@ -31,15 +31,15 @@ impl Day09 {
     // Part 1
     // ----------------------------------------------------------
 
-    fn max_area_inclusive(points: &[Pt]) -> i64 {
-        let n = points.len();
+    fn max_area_inclusive(red_tiles: &[Point]) -> i64 {
+        let point_count = red_tiles.len();
         let mut best: i64 = 0;
 
-        for i in 0..n {
-            for j in i + 1..n {
-                let dx = (points[i].x - points[j].x).abs() as i64 + 1;
-                let dy = (points[i].y - points[j].y).abs() as i64 + 1;
-                best = best.max(dx * dy);
+        for i in 0..point_count {
+            for j in i + 1..point_count {
+                let width = (red_tiles[i].x - red_tiles[j].x).abs() as i64 + 1;
+                let height = (red_tiles[i].y - red_tiles[j].y).abs() as i64 + 1;
+                best = best.max(width * height);
             }
         }
         best
@@ -50,63 +50,62 @@ impl Day09 {
     // ----------------------------------------------------------
 
     fn build_edges(&mut self) {
-        let n = self.reds.len();
-        self.edges.clear();
-        self.hor_edges.clear();
-        self.vert_edges.clear();
+        let point_count = self.red_tiles.len();
+        self.boundary.clear();
+        self.horizontal_edges.clear();
+        self.vertical_edges.clear();
 
-        for i in 0..n {
-            let a = self.reds[i];
-            let b = self.reds[(i + 1) % n];
+        for i in 0..point_count {
+            let a = self.red_tiles[i];
+            let b = self.red_tiles[(i + 1) % point_count];
 
             if a.y == b.y {
                 let (x1, x2) = if a.x <= b.x { (a.x, b.x) } else { (b.x, a.x) };
-                let edge = Edge {
+                let edge = Segment {
                     x1,
                     y1: a.y,
                     x2,
                     y2: a.y,
                 };
-                self.edges.push(edge);
-                self.hor_edges.push(edge);
+                self.boundary.push(edge);
+                self.horizontal_edges.push(edge);
             } else {
                 let (y1, y2) = if a.y <= b.y { (a.y, b.y) } else { (b.y, a.y) };
-                let edge = Edge {
+                let edge = Segment {
                     x1: a.x,
                     y1,
                     x2: a.x,
                     y2,
                 };
-                self.edges.push(edge);
-                self.vert_edges.push(edge);
+                self.boundary.push(edge);
+                self.vertical_edges.push(edge);
             }
         }
     }
 
     /// Boundary check + integer-only inside test
-    fn point_inside_or_on(&self, p: Pt) -> bool {
-        for e in &self.hor_edges {
-            if p.y == e.y1 && p.x >= e.x1 && p.x <= e.x2 {
+    fn point_inside_or_on(&self, point: Point) -> bool {
+        for edge in &self.horizontal_edges {
+            if point.y == edge.y1 && point.x >= edge.x1 && point.x <= edge.x2 {
                 return true;
             }
         }
-        for e in &self.vert_edges {
-            if p.x == e.x1 && p.y >= e.y1 && p.y <= e.y2 {
+        for edge in &self.vertical_edges {
+            if point.x == edge.x1 && point.y >= edge.y1 && point.y <= edge.y2 {
                 return true;
             }
         }
 
-        // Integer vertical-edge crossing (no floats)
-        self.point_inside_fast(p)
+        self.point_inside_polygon(point)
     }
 
     /// Integer-only point-in-polygon for orthogonal polygons
-    fn point_inside_fast(&self, p: Pt) -> bool {
+    fn point_inside_polygon(&self, point: Point) -> bool {
         let mut inside = false;
 
-        for e in &self.vert_edges {
+        for edge in &self.vertical_edges {
             // Vertical edge at x = e.x1, spanning [y1, y2)
-            if p.y >= e.y1 && p.y < e.y2 && p.x < e.x1 {
+            if point.y >= edge.y1 && point.y < edge.y2 && point.x < edge.x1 {
                 inside = !inside;
             }
         }
@@ -119,21 +118,21 @@ impl Day09 {
             return false;
         }
 
-        for e in &self.hor_edges {
-            let y = e.y1;
+        for edge in &self.horizontal_edges {
+            let y = edge.y1;
             if y <= y1 || y >= y2 {
                 continue;
             }
-            if e.x1.max(x1) < e.x2.min(x2) {
+            if edge.x1.max(x1) < edge.x2.min(x2) {
                 return true;
             }
         }
-        for e in &self.vert_edges {
-            let x = e.x1;
+        for edge in &self.vertical_edges {
+            let x = edge.x1;
             if x <= x1 || x >= x2 {
                 continue;
             }
-            if e.y1.max(y1) < e.y2.min(y2) {
+            if edge.y1.max(y1) < edge.y2.min(y2) {
                 return true;
             }
         }
@@ -143,10 +142,10 @@ impl Day09 {
 
 impl Solution for Day09 {
     fn set_input(&mut self, lines: &[String]) {
-        self.reds.clear();
-        self.edges.clear();
-        self.hor_edges.clear();
-        self.vert_edges.clear();
+        self.red_tiles.clear();
+        self.boundary.clear();
+        self.horizontal_edges.clear();
+        self.vertical_edges.clear();
 
         for line in lines {
             let line = line.trim();
@@ -156,30 +155,30 @@ impl Solution for Day09 {
             let mut parts = line.split(',');
             let x: i32 = parts.next().unwrap().parse().unwrap();
             let y: i32 = parts.next().unwrap().parse().unwrap();
-            self.reds.push(Pt { x, y });
+            self.red_tiles.push(Point { x, y });
         }
     }
 
     fn part1(&mut self) -> String {
-        Self::max_area_inclusive(&self.reds).to_string()
+        Self::max_area_inclusive(&self.red_tiles).to_string()
     }
 
     fn part2(&mut self) -> String {
-        if self.reds.len() < 2 {
+        if self.red_tiles.len() < 2 {
             return "0".to_string();
         }
 
-        if self.edges.is_empty() {
+        if self.boundary.is_empty() {
             self.build_edges();
         }
 
-        let n = self.reds.len();
+        let point_count = self.red_tiles.len();
         let mut best: i64 = 0;
 
-        for i in 0..n {
-            let a = self.reds[i];
-            for j in i + 1..n {
-                let b = self.reds[j];
+        for i in 0..point_count {
+            let a = self.red_tiles[i];
+            for j in i + 1..point_count {
+                let b = self.red_tiles[j];
 
                 let x1 = a.x.min(b.x);
                 let x2 = a.x.max(b.x);
@@ -195,10 +194,12 @@ impl Solution for Day09 {
                     continue;
                 }
 
-                let c3 = Pt { x: x1, y: y2 };
-                let c4 = Pt { x: x2, y: y1 };
+                let opposite_corner_a = Point { x: x1, y: y2 };
+                let opposite_corner_b = Point { x: x2, y: y1 };
 
-                if !self.point_inside_or_on(c3) || !self.point_inside_or_on(c4) {
+                if !self.point_inside_or_on(opposite_corner_a)
+                    || !self.point_inside_or_on(opposite_corner_b)
+                {
                     continue;
                 }
 

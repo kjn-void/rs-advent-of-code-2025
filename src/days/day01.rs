@@ -3,7 +3,7 @@ use crate::days::Solution;
 #[derive(Default)]
 pub struct Day01 {
     // Signed deltas: Rn => +n, Ln => -n
-    moves: Vec<i32>,
+    rotations: Vec<i32>,
 }
 
 impl Day01 {
@@ -12,32 +12,32 @@ impl Day01 {
     }
 
     #[inline]
-    fn mod100(n: i32) -> i32 {
-        let mut v = n % 100;
-        if v < 0 {
-            v += 100;
+    fn dial_position(value: i32) -> i32 {
+        let mut position = value % 100;
+        if position < 0 {
+            position += 100;
         }
-        v
+        position
     }
 }
 
 impl Solution for Day01 {
     fn set_input(&mut self, lines: &[String]) {
-        self.moves.clear();
+        self.rotations.clear();
 
         for line in lines {
-            let s = line.trim();
-            if s.is_empty() {
+            let instruction = line.trim();
+            if instruction.is_empty() {
                 continue;
             }
 
-            let (dir, rest) = s.split_at(1);
-            let val: i32 = rest.parse().unwrap();
+            let (direction, rest) = instruction.split_at(1);
+            let clicks: i32 = rest.parse().unwrap();
 
-            if dir == "L" {
-                self.moves.push(-val);
+            if direction == "L" {
+                self.rotations.push(-clicks);
             } else {
-                self.moves.push(val);
+                self.rotations.push(clicks);
             }
         }
     }
@@ -46,47 +46,47 @@ impl Solution for Day01 {
     // Part 1
     // ------------------------------------------------------------
     fn part1(&mut self) -> String {
-        let mut pos: i32 = 50;
-        let mut count_zero = 0;
+        let mut position: i32 = 50;
+        let mut zero_hits = 0;
 
-        for &delta in &self.moves {
-            pos = Self::mod100(pos + delta);
-            if pos == 0 {
-                count_zero += 1;
+        for &rotation in &self.rotations {
+            position = Self::dial_position(position + rotation);
+            if position == 0 {
+                zero_hits += 1;
             }
         }
 
-        count_zero.to_string()
+        zero_hits.to_string()
     }
 
     // ------------------------------------------------------------
     // Part 2
     // ------------------------------------------------------------
     fn part2(&mut self) -> String {
-        let mut pos: i32 = 50;
-        let mut count_zero = 0;
+        let mut position: i32 = 50;
+        let mut zero_hits = 0;
 
-        for &delta in &self.moves {
-            let step = if delta < 0 { -1 } else { 1 };
+        for &rotation in &self.rotations {
+            let step = if rotation < 0 { -1 } else { 1 };
             let mut moved = 0;
 
-            while moved != delta {
-                pos += step;
-                if pos < 0 {
-                    pos += 100;
-                } else if pos >= 100 {
-                    pos -= 100;
+            while moved != rotation {
+                position += step;
+                if position < 0 {
+                    position += 100;
+                } else if position >= 100 {
+                    position -= 100;
                 }
 
-                if pos == 0 {
-                    count_zero += 1;
+                if position == 0 {
+                    zero_hits += 1;
                 }
 
                 moved += step;
             }
         }
 
-        count_zero.to_string()
+        zero_hits.to_string()
     }
 }
 

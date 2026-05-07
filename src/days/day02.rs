@@ -2,7 +2,7 @@ use crate::days::Solution;
 
 #[derive(Default)]
 pub struct Day02 {
-    ranges: Vec<(i64, i64)>, // inclusive [L, R]
+    id_ranges: Vec<(i64, i64)>,
 }
 
 impl Day02 {
@@ -27,28 +27,27 @@ const fn pow10_table() -> [i64; 18] {
     t
 }
 
-const P10: [i64; 18] = pow10_table();
+const POW10: [i64; 18] = pow10_table();
 
-// smallest repeating block size of numeric string s
-fn smallest_block(s: &str) -> usize {
-    let n = s.len();
-    for k in 1..=n / 2 {
-        if !n.is_multiple_of(k) {
+fn smallest_repeating_block_len(digits: &str) -> usize {
+    let digit_count = digits.len();
+    for block_len in 1..=digit_count / 2 {
+        if !digit_count.is_multiple_of(block_len) {
             continue;
         }
-        let block = &s[..k];
-        let mut ok = true;
-        for i in (k..n).step_by(k) {
-            if &s[i..i + k] != block {
-                ok = false;
+        let block = &digits[..block_len];
+        let mut repeats = true;
+        for start in (block_len..digit_count).step_by(block_len) {
+            if &digits[start..start + block_len] != block {
+                repeats = false;
                 break;
             }
         }
-        if ok {
-            return k;
+        if repeats {
+            return block_len;
         }
     }
-    n
+    digit_count
 }
 
 // ------------------------------------------------------------
@@ -57,7 +56,7 @@ fn smallest_block(s: &str) -> usize {
 
 impl Solution for Day02 {
     fn set_input(&mut self, lines: &[String]) {
-        self.ranges.clear();
+        self.id_ranges.clear();
 
         if lines.is_empty() {
             return;
@@ -71,7 +70,7 @@ impl Solution for Day02 {
             let mut it = part.split('-');
             let start: i64 = it.next().unwrap().parse().unwrap();
             let end: i64 = it.next().unwrap().parse().unwrap();
-            self.ranges.push((start, end));
+            self.id_ranges.push((start, end));
         }
     }
 
@@ -82,31 +81,31 @@ impl Solution for Day02 {
     fn part1(&mut self) -> String {
         let mut sum: i64 = 0;
 
-        for &(l, r) in &self.ranges {
-            let max_digits = r.to_string().len();
+        for &(range_start, range_end) in &self.id_ranges {
+            let max_digits = range_end.to_string().len();
 
-            for k in 1..=max_digits / 2 {
-                let base = P10[k];
-                let rep_factor = base + 1;
+            for block_digits in 1..=max_digits / 2 {
+                let base = POW10[block_digits];
+                let repeat_factor = base + 1;
 
-                let d_lo = P10[k - 1];
-                let d_hi = base - 1;
+                let min_block = POW10[block_digits - 1];
+                let max_block = base - 1;
 
-                let mut cand_min = (l + rep_factor - 1) / rep_factor;
-                let mut cand_max = r / rep_factor;
+                let mut candidate_min = (range_start + repeat_factor - 1) / repeat_factor;
+                let mut candidate_max = range_end / repeat_factor;
 
-                if cand_min < d_lo {
-                    cand_min = d_lo;
+                if candidate_min < min_block {
+                    candidate_min = min_block;
                 }
-                if cand_max > d_hi {
-                    cand_max = d_hi;
+                if candidate_max > max_block {
+                    candidate_max = max_block;
                 }
-                if cand_min > cand_max {
+                if candidate_min > candidate_max {
                     continue;
                 }
 
-                for dd in cand_min..=cand_max {
-                    sum += dd * rep_factor;
+                for block_value in candidate_min..=candidate_max {
+                    sum += block_value * repeat_factor;
                 }
             }
         }
@@ -121,44 +120,43 @@ impl Solution for Day02 {
     fn part2(&mut self) -> String {
         let mut total: i64 = 0;
 
-        for &(l, r) in &self.ranges {
-            let max_digits = r.to_string().len();
+        for &(range_start, range_end) in &self.id_ranges {
+            let max_digits = range_end.to_string().len();
 
-            for (total_digits, &ten_len) in P10.iter().enumerate().take(max_digits + 1).skip(2) {
-                for m in 2..=total_digits {
-                    if total_digits % m != 0 {
+            for (total_digits, &ten_len) in POW10.iter().enumerate().take(max_digits + 1).skip(2) {
+                for repetitions in 2..=total_digits {
+                    if total_digits % repetitions != 0 {
                         continue;
                     }
 
-                    let k = total_digits / m;
-                    let base_k = P10[k];
-                    let rep_factor = (ten_len - 1) / (base_k - 1);
+                    let block_digits = total_digits / repetitions;
+                    let block_base = POW10[block_digits];
+                    let repeat_factor = (ten_len - 1) / (block_base - 1);
 
-                    let d_lo = P10[k - 1];
-                    let d_hi = base_k - 1;
+                    let min_block = POW10[block_digits - 1];
+                    let max_block = block_base - 1;
 
-                    let mut cand_min = (l + rep_factor - 1) / rep_factor;
-                    let mut cand_max = r / rep_factor;
+                    let mut candidate_min = (range_start + repeat_factor - 1) / repeat_factor;
+                    let mut candidate_max = range_end / repeat_factor;
 
-                    if cand_min < d_lo {
-                        cand_min = d_lo;
+                    if candidate_min < min_block {
+                        candidate_min = min_block;
                     }
-                    if cand_max > d_hi {
-                        cand_max = d_hi;
+                    if candidate_max > max_block {
+                        candidate_max = max_block;
                     }
-                    if cand_min > cand_max {
+                    if candidate_min > candidate_max {
                         continue;
                     }
 
-                    for dd in cand_min..=cand_max {
-                        let ds = dd.to_string();
+                    for block_value in candidate_min..=candidate_max {
+                        let block_digits = block_value.to_string();
 
-                        // uniqueness: dd must not have internal repetition
-                        if smallest_block(&ds) != ds.len() {
+                        if smallest_repeating_block_len(&block_digits) != block_digits.len() {
                             continue;
                         }
 
-                        total += dd * rep_factor;
+                        total += block_value * repeat_factor;
                     }
                 }
             }

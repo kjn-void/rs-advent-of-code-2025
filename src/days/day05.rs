@@ -2,8 +2,8 @@ use crate::days::Solution;
 
 #[derive(Default)]
 pub struct Day05 {
-    ranges: Vec<(i64, i64)>,
-    ids: Vec<i64>,
+    fresh_ranges: Vec<(i64, i64)>,
+    available_ids: Vec<i64>,
 }
 
 impl Day05 {
@@ -13,14 +13,14 @@ impl Day05 {
 
     fn is_fresh(&self, id: i64) -> bool {
         let mut lo = 0usize;
-        let mut hi = self.ranges.len();
+        let mut hi = self.fresh_ranges.len();
 
         while lo < hi {
             let mid = (lo + hi) / 2;
-            let (a, b) = self.ranges[mid];
-            if id < a {
+            let (range_start, range_end) = self.fresh_ranges[mid];
+            if id < range_start {
                 hi = mid;
-            } else if id > b {
+            } else if id > range_end {
                 lo = mid + 1;
             } else {
                 return true;
@@ -32,8 +32,8 @@ impl Day05 {
 
 impl Solution for Day05 {
     fn set_input(&mut self, lines: &[String]) {
-        self.ranges.clear();
-        self.ids.clear();
+        self.fresh_ranges.clear();
+        self.available_ids.clear();
 
         let mut section = 0;
 
@@ -48,35 +48,34 @@ impl Solution for Day05 {
                 let mut parts = s.split('-');
                 let start: i64 = parts.next().unwrap().parse().unwrap();
                 let end: i64 = parts.next().unwrap().parse().unwrap();
-                self.ranges.push((start, end));
+                self.fresh_ranges.push((start, end));
             } else {
                 let id: i64 = s.parse().unwrap();
-                self.ids.push(id);
+                self.available_ids.push(id);
             }
         }
 
-        // Sort and merge ranges
-        self.ranges.sort_by_key(|r| r.0);
+        self.fresh_ranges.sort_by_key(|range| range.0);
 
         let mut merged: Vec<(i64, i64)> = Vec::new();
-        let mut cur = self.ranges[0];
+        let mut current = self.fresh_ranges[0];
 
-        for &(s, e) in &self.ranges[1..] {
-            if s <= cur.1 {
-                cur.1 = cur.1.max(e);
+        for &(start, end) in &self.fresh_ranges[1..] {
+            if start <= current.1 {
+                current.1 = current.1.max(end);
             } else {
-                merged.push(cur);
-                cur = (s, e);
+                merged.push(current);
+                current = (start, end);
             }
         }
-        merged.push(cur);
+        merged.push(current);
 
-        self.ranges = merged;
+        self.fresh_ranges = merged;
     }
 
     fn part1(&mut self) -> String {
         let mut count = 0;
-        for &id in &self.ids {
+        for &id in &self.available_ids {
             if self.is_fresh(id) {
                 count += 1;
             }
@@ -85,7 +84,11 @@ impl Solution for Day05 {
     }
 
     fn part2(&mut self) -> String {
-        let total: i64 = self.ranges.iter().map(|(a, b)| b - a + 1).sum();
+        let total: i64 = self
+            .fresh_ranges
+            .iter()
+            .map(|(start, end)| end - start + 1)
+            .sum();
         total.to_string()
     }
 }

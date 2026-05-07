@@ -5,7 +5,7 @@ use crate::days::Solution;
 // -----------------------------------------------------------
 
 #[derive(Clone, Copy)]
-struct Vec3 {
+struct Point3 {
     x: i64,
     y: i64,
     z: i64,
@@ -13,14 +13,14 @@ struct Vec3 {
 
 #[derive(Clone, Copy)]
 struct Edge {
-    dist2: i64,
-    i: usize,
-    j: usize,
+    distance_sq: i64,
+    a: usize,
+    b: usize,
 }
 
 #[derive(Default)]
 pub struct Day08 {
-    points: Vec<Vec3>,
+    junctions: Vec<Point3>,
     edges: Vec<Edge>,
 }
 
@@ -33,26 +33,26 @@ impl Day08 {
     // Distance helpers
     // -----------------------------------------------------------
 
-    fn squared_dist(a: Vec3, b: Vec3) -> i64 {
+    fn squared_dist(a: Point3, b: Point3) -> i64 {
         let dx = a.x - b.x;
         let dy = a.y - b.y;
         let dz = a.z - b.z;
         dx * dx + dy * dy + dz * dz
     }
 
-    fn build_sorted_edges(points: &[Vec3]) -> Vec<Edge> {
-        let n = points.len();
-        if n < 2 {
+    fn build_sorted_edges(junctions: &[Point3]) -> Vec<Edge> {
+        let junction_count = junctions.len();
+        if junction_count < 2 {
             return Vec::new();
         }
 
-        let mut edges = Vec::with_capacity(n * (n - 1) / 2);
-        for i in 0..n - 1 {
-            for j in i + 1..n {
+        let mut edges = Vec::with_capacity(junction_count * (junction_count - 1) / 2);
+        for a in 0..junction_count - 1 {
+            for b in a + 1..junction_count {
                 edges.push(Edge {
-                    dist2: Self::squared_dist(points[i], points[j]),
-                    i,
-                    j,
+                    distance_sq: Self::squared_dist(junctions[a], junctions[b]),
+                    a,
+                    b,
                 });
             }
         }
@@ -65,26 +65,30 @@ impl Day08 {
     // Union-Find
     // -----------------------------------------------------------
 
-    fn run_connections(points: &[Vec3], edges: &[Edge], k: usize) -> Vec<usize> {
-        let n = points.len();
-        if n == 0 {
+    fn circuit_sizes_after_connections(
+        junctions: &[Point3],
+        edges: &[Edge],
+        connection_count: usize,
+    ) -> Vec<usize> {
+        let junction_count = junctions.len();
+        if junction_count == 0 {
             return Vec::new();
         }
 
-        let mut uf = Dsu::new(n);
-        let limit = k.min(edges.len());
+        let mut circuits = Dsu::new(junction_count);
+        let limit = connection_count.min(edges.len());
 
-        for e in edges.iter().take(limit) {
-            uf.union(e.i, e.j);
+        for edge in edges.iter().take(limit) {
+            circuits.union(edge.a, edge.b);
         }
 
-        let mut seen = vec![false; n];
-        let mut sizes = Vec::with_capacity(n);
-        for i in 0..n {
-            let r = uf.find(i);
-            if !seen[r] {
-                seen[r] = true;
-                sizes.push(uf.size[r]);
+        let mut seen_roots = vec![false; junction_count];
+        let mut sizes = Vec::with_capacity(junction_count);
+        for index in 0..junction_count {
+            let root = circuits.find(index);
+            if !seen_roots[root] {
+                seen_roots[root] = true;
+                sizes.push(circuits.size[root]);
             }
         }
 
@@ -92,27 +96,27 @@ impl Day08 {
         sizes
     }
 
-    fn run_until_single_circuit(points: &[Vec3], edges: &[Edge]) -> (usize, usize) {
-        let n = points.len();
-        if n <= 1 {
+    fn final_connection(junctions: &[Point3], edges: &[Edge]) -> (usize, usize) {
+        let junction_count = junctions.len();
+        if junction_count <= 1 {
             return (0, 0);
         }
 
-        let mut uf = Dsu::new(n);
-        let mut components = n;
-        let mut last = (0, 0);
+        let mut circuits = Dsu::new(junction_count);
+        let mut component_count = junction_count;
+        let mut last_connection = (0, 0);
 
-        for e in edges {
-            if uf.union(e.i, e.j) {
-                components -= 1;
-                last = (e.i, e.j);
-                if components == 1 {
+        for edge in edges {
+            if circuits.union(edge.a, edge.b) {
+                component_count -= 1;
+                last_connection = (edge.a, edge.b);
+                if component_count == 1 {
                     break;
                 }
             }
         }
 
-        last
+        last_connection
     }
 }
 
@@ -132,7 +136,7 @@ fn radix_sort_edges(edges: &mut [Edge]) {
     for shift in (0..64).step_by(RADIX_BITS) {
         counts.fill(0);
         for edge in src.iter() {
-            counts[((edge.dist2 as u64 >> shift) & MASK) as usize] += 1;
+            counts[((edge.distance_sq as u64 >> shift) & MASK) as usize] += 1;
         }
 
         let mut sum = 0;
@@ -143,7 +147,7 @@ fn radix_sort_edges(edges: &mut [Edge]) {
         }
 
         for edge in src.iter().copied() {
-            let bucket = ((edge.dist2 as u64 >> shift) & MASK) as usize;
+            let bucket = ((edge.distance_sq as u64 >> shift) & MASK) as usize;
             dst[counts[bucket]] = edge;
             counts[bucket] += 1;
         }
@@ -164,21 +168,21 @@ struct Dsu {
 }
 
 impl Dsu {
-    fn new(n: usize) -> Self {
-        let mut parent = Vec::with_capacity(n);
-        let mut size = Vec::with_capacity(n);
-        for i in 0..n {
-            parent.push(i);
+    fn new(node_count: usize) -> Self {
+        let mut parent = Vec::with_capacity(node_count);
+        let mut size = Vec::with_capacity(node_count);
+        for node in 0..node_count {
+            parent.push(node);
             size.push(1);
         }
         Self { parent, size }
     }
 
-    fn find(&mut self, x: usize) -> usize {
-        if self.parent[x] != x {
-            self.parent[x] = self.find(self.parent[x]);
+    fn find(&mut self, node: usize) -> usize {
+        if self.parent[node] != node {
+            self.parent[node] = self.find(self.parent[node]);
         }
-        self.parent[x]
+        self.parent[node]
     }
 
     fn union(&mut self, a: usize, b: usize) -> bool {
@@ -202,9 +206,9 @@ impl Dsu {
 // Parsing
 // -----------------------------------------------------------
 
-fn parse_vec3(line: &str) -> Vec3 {
+fn parse_point3(line: &str) -> Point3 {
     let mut it = line.split(',');
-    Vec3 {
+    Point3 {
         x: it.next().unwrap().parse().unwrap(),
         y: it.next().unwrap().parse().unwrap(),
         z: it.next().unwrap().parse().unwrap(),
@@ -217,18 +221,18 @@ fn parse_vec3(line: &str) -> Vec3 {
 
 impl Solution for Day08 {
     fn set_input(&mut self, lines: &[String]) {
-        self.points.clear();
+        self.junctions.clear();
         for line in lines {
             let s = line.trim();
             if !s.is_empty() {
-                self.points.push(parse_vec3(s));
+                self.junctions.push(parse_point3(s));
             }
         }
-        self.edges = Self::build_sorted_edges(&self.points);
+        self.edges = Self::build_sorted_edges(&self.junctions);
     }
 
     fn part1(&mut self) -> String {
-        let sizes = Self::run_connections(&self.points, &self.edges, 1000);
+        let sizes = Self::circuit_sizes_after_connections(&self.junctions, &self.edges, 1000);
         if sizes.len() < 3 {
             return "0".to_string();
         }
@@ -236,11 +240,11 @@ impl Solution for Day08 {
     }
 
     fn part2(&mut self) -> String {
-        if self.points.len() < 2 {
+        if self.junctions.len() < 2 {
             return "0".to_string();
         }
-        let (i, j) = Self::run_until_single_circuit(&self.points, &self.edges);
-        (self.points[i].x * self.points[j].x).to_string()
+        let (a, b) = Self::final_connection(&self.junctions, &self.edges);
+        (self.junctions[a].x * self.junctions[b].x).to_string()
     }
 }
 
@@ -285,7 +289,7 @@ mod tests {
         let mut d = Day08::new();
         d.set_input(&example_input());
 
-        let sizes = Day08::run_connections(&d.points, &d.edges, 10);
+        let sizes = Day08::circuit_sizes_after_connections(&d.junctions, &d.edges, 10);
         let got = sizes[0] * sizes[1] * sizes[2];
         let want = 40;
 
@@ -297,8 +301,8 @@ mod tests {
         let mut d = Day08::new();
         d.set_input(&example_input());
 
-        let (i, j) = Day08::run_until_single_circuit(&d.points, &d.edges);
-        let got = d.points[i].x * d.points[j].x;
+        let (a, b) = Day08::final_connection(&d.junctions, &d.edges);
+        let got = d.junctions[a].x * d.junctions[b].x;
         let want: i64 = 25272;
 
         assert_eq!(got, want);

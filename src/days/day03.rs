@@ -2,7 +2,7 @@ use crate::days::Solution;
 
 #[derive(Default)]
 pub struct Day03 {
-    banks: Vec<Vec<u8>>, // digits 0–9
+    battery_banks: Vec<Vec<u8>>,
 }
 
 impl Day03 {
@@ -10,50 +10,53 @@ impl Day03 {
         Self::default()
     }
 
-    fn max_joltage(&self, pick: usize) -> String {
+    fn max_joltage(&self, batteries_to_pick: usize) -> String {
         let mut total: i64 = 0;
 
-        for bank in &self.banks {
-            let n = bank.len();
-            let mut need = pick;
-            let mut stack: Vec<u8> = Vec::with_capacity(pick);
+        for bank in &self.battery_banks {
+            let bank_len = bank.len();
+            let mut remaining_picks = batteries_to_pick;
+            let mut chosen_digits: Vec<u8> = Vec::with_capacity(batteries_to_pick);
 
-            for (i, &dig) in bank.iter().enumerate() {
-                let remaining = n - i;
+            for (index, &digit) in bank.iter().enumerate() {
+                let remaining_digits = bank_len - index;
 
-                while !stack.is_empty() && remaining > need && *stack.last().unwrap() < dig {
-                    stack.pop();
-                    need += 1;
+                while !chosen_digits.is_empty()
+                    && remaining_digits > remaining_picks
+                    && *chosen_digits.last().unwrap() < digit
+                {
+                    chosen_digits.pop();
+                    remaining_picks += 1;
                 }
 
-                if need > 0 {
-                    stack.push(dig);
-                    need -= 1;
+                if remaining_picks > 0 {
+                    chosen_digits.push(digit);
+                    remaining_picks -= 1;
                 }
             }
 
-            total += stack_to_number(&stack);
+            total += digits_to_number(&chosen_digits);
         }
 
         total.to_string()
     }
 }
 
-fn stack_to_number(stack: &[u8]) -> i64 {
-    let mut val: i64 = 0;
-    for &d in stack {
-        val = val * 10 + d as i64;
+fn digits_to_number(digits: &[u8]) -> i64 {
+    let mut value: i64 = 0;
+    for &digit in digits {
+        value = value * 10 + digit as i64;
     }
-    val
+    value
 }
 
 impl Solution for Day03 {
     fn set_input(&mut self, lines: &[String]) {
-        self.banks.clear();
+        self.battery_banks.clear();
 
         for line in lines {
             let digits = line.bytes().map(|b| b - b'0').collect::<Vec<_>>();
-            self.banks.push(digits);
+            self.battery_banks.push(digits);
         }
     }
 

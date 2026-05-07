@@ -10,9 +10,9 @@ struct Shape {
 
 #[derive(Clone)]
 struct Region {
-    w: usize,
-    h: usize,
-    counts: Vec<usize>,
+    width: usize,
+    height: usize,
+    shape_counts: Vec<usize>,
 }
 
 #[derive(Default)]
@@ -33,55 +33,55 @@ impl Day12 {
     fn normalize(cells: &[Cell]) -> Vec<Cell> {
         let min_x = cells.iter().map(|(x, _)| *x).min().unwrap();
         let min_y = cells.iter().map(|(_, y)| *y).min().unwrap();
-        let mut out: Vec<_> = cells.iter().map(|(x, y)| (x - min_x, y - min_y)).collect();
-        out.sort();
-        out
+        let mut normalized: Vec<_> = cells.iter().map(|(x, y)| (x - min_x, y - min_y)).collect();
+        normalized.sort();
+        normalized
     }
 
     fn orientations(shape: &Shape) -> Vec<Shape> {
-        let mut out = Vec::new();
-        let mut cur = shape.cells.clone();
+        let mut orientations = Vec::new();
+        let mut rotated = shape.cells.clone();
 
         for _ in 0..4 {
-            cur = cur.iter().map(|(x, y)| (*y, -*x)).collect();
+            rotated = rotated.iter().map(|(x, y)| (*y, -*x)).collect();
             for flip in [false, true] {
-                let v: Vec<Cell> = if flip {
-                    cur.iter().map(|(x, y)| (-x, *y)).collect()
+                let cells: Vec<Cell> = if flip {
+                    rotated.iter().map(|(x, y)| (-x, *y)).collect()
                 } else {
-                    cur.clone()
+                    rotated.clone()
                 };
-                out.push(Shape {
-                    cells: Self::normalize(&v),
+                orientations.push(Shape {
+                    cells: Self::normalize(&cells),
                 });
             }
         }
 
-        out.sort();
-        out.dedup();
-        out
+        orientations.sort();
+        orientations.dedup();
+        orientations
     }
 
-    fn placements(shape: &Shape, w: usize, h: usize) -> Vec<Vec<usize>> {
-        let mut out = Vec::new();
-        for x in 0..w as i32 {
-            for y in 0..h as i32 {
+    fn placements(shape: &Shape, width: usize, height: usize) -> Vec<Vec<usize>> {
+        let mut placements = Vec::new();
+        for x in 0..width as i32 {
+            for y in 0..height as i32 {
                 let mut cells = Vec::new();
-                let mut ok = true;
+                let mut fits = true;
                 for (dx, dy) in &shape.cells {
                     let nx = x + dx;
                     let ny = y + dy;
-                    if nx < 0 || ny < 0 || nx >= w as i32 || ny >= h as i32 {
-                        ok = false;
+                    if nx < 0 || ny < 0 || nx >= width as i32 || ny >= height as i32 {
+                        fits = false;
                         break;
                     }
-                    cells.push(ny as usize * w + nx as usize);
+                    cells.push(ny as usize * width + nx as usize);
                 }
-                if ok {
-                    out.push(cells);
+                if fits {
+                    placements.push(cells);
                 }
             }
         }
-        out
+        placements
     }
 
     // ------------------------------------------------------------
@@ -89,70 +89,74 @@ impl Day12 {
     // ------------------------------------------------------------
 
     fn can_pack(region: &Region, shapes: &[Shape]) -> bool {
-        let size = region.w * region.h;
-        let mut occ = vec![false; size];
-        let mut counts = region.counts.clone();
+        let board_size = region.width * region.height;
+        let mut occupied = vec![false; board_size];
+        let mut remaining_counts = region.shape_counts.clone();
 
-        let mut placements: Vec<Vec<Vec<usize>>> = Vec::new();
-        for s in shapes {
-            let mut all = Vec::new();
-            for o in Self::orientations(s) {
-                all.extend(Self::placements(&o, region.w, region.h));
+        let mut placements_by_shape: Vec<Vec<Vec<usize>>> = Vec::new();
+        for shape in shapes {
+            let mut placements = Vec::new();
+            for orientation in Self::orientations(shape) {
+                placements.extend(Self::placements(&orientation, region.width, region.height));
             }
-            placements.push(all);
+            placements_by_shape.push(placements);
         }
 
-        fn dfs(occ: &mut [bool], counts: &mut [usize], placements: &[Vec<Vec<usize>>]) -> bool {
+        fn dfs(
+            occupied: &mut [bool],
+            remaining_counts: &mut [usize],
+            placements_by_shape: &[Vec<Vec<usize>>],
+        ) -> bool {
             // Choose the most constrained shape (fewest valid placements)
             let mut best_shape = None;
-            let mut best_count = usize::MAX;
+            let mut fewest_valid_placements = usize::MAX;
 
-            for (i, &c) in counts.iter().enumerate() {
-                if c == 0 {
+            for (shape_index, &remaining) in remaining_counts.iter().enumerate() {
+                if remaining == 0 {
                     continue;
                 }
-                let valid = placements[i]
+                let valid_count = placements_by_shape[shape_index]
                     .iter()
-                    .filter(|p| p.iter().all(|&idx| !occ[idx]))
+                    .filter(|placement| placement.iter().all(|&idx| !occupied[idx]))
                     .count();
 
-                if valid == 0 {
+                if valid_count == 0 {
                     return false; // dead end
                 }
-                if valid < best_count {
-                    best_count = valid;
-                    best_shape = Some(i);
+                if valid_count < fewest_valid_placements {
+                    fewest_valid_placements = valid_count;
+                    best_shape = Some(shape_index);
                 }
             }
 
             // No shapes left → success
-            let s = match best_shape {
-                Some(v) => v,
+            let shape_index = match best_shape {
+                Some(shape_index) => shape_index,
                 None => return true,
             };
 
             // Try all valid placements for that shape
-            for place in &placements[s] {
-                if place.iter().all(|&i| !occ[i]) {
-                    for &i in place {
-                        occ[i] = true;
+            for placement in &placements_by_shape[shape_index] {
+                if placement.iter().all(|&idx| !occupied[idx]) {
+                    for &idx in placement {
+                        occupied[idx] = true;
                     }
-                    counts[s] -= 1;
+                    remaining_counts[shape_index] -= 1;
 
-                    if dfs(occ, counts, placements) {
+                    if dfs(occupied, remaining_counts, placements_by_shape) {
                         return true;
                     }
 
-                    counts[s] += 1;
-                    for &i in place {
-                        occ[i] = false;
+                    remaining_counts[shape_index] += 1;
+                    for &idx in placement {
+                        occupied[idx] = false;
                     }
                 }
             }
             false
         }
 
-        dfs(&mut occ, &mut counts, &placements)
+        dfs(&mut occupied, &mut remaining_counts, &placements_by_shape)
     }
 }
 
@@ -202,14 +206,18 @@ fn parse_day12(lines: &[String], shapes: &mut Vec<Shape>, regions: &mut Vec<Regi
             let parts: Vec<_> = line.split(':').collect();
             let dims: Vec<_> = parts[0].split('x').collect();
 
-            let w = dims[0].parse::<usize>().unwrap();
-            let h = dims[1].parse::<usize>().unwrap();
-            let counts = parts[1]
+            let width = dims[0].parse::<usize>().unwrap();
+            let height = dims[1].parse::<usize>().unwrap();
+            let shape_counts = parts[1]
                 .split_whitespace()
                 .map(|x| x.parse::<usize>().unwrap())
                 .collect();
 
-            regions.push(Region { w, h, counts });
+            regions.push(Region {
+                width,
+                height,
+                shape_counts,
+            });
             i += 1;
         } else {
             i += 1;
@@ -235,14 +243,14 @@ impl Solution for Day12 {
 
         self.regions
             .par_iter()
-            .filter(|r| {
+            .filter(|region| {
                 let needed_area: usize = shapes
                     .iter()
-                    .zip(&r.counts)
-                    .map(|(s, &c)| s.cells.len() * c)
+                    .zip(&region.shape_counts)
+                    .map(|(shape, &count)| shape.cells.len() * count)
                     .sum();
 
-                let board_area = r.w * r.h;
+                let board_area = region.width * region.height;
 
                 if needed_area > board_area {
                     return false;
@@ -253,7 +261,7 @@ impl Solution for Day12 {
                     return true;
                 }
 
-                Day12::can_pack(r, shapes)
+                Day12::can_pack(region, shapes)
             })
             .count()
             .to_string()

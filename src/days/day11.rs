@@ -3,57 +3,66 @@ use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct Day11 {
-    g: HashMap<String, Vec<String>>,
+    graph: HashMap<String, Vec<String>>,
 }
 
 impl Day11 {
     fn count_paths_from(&self, start: &str) -> u64 {
-        fn dfs(u: &str, g: &HashMap<String, Vec<String>>, memo: &mut HashMap<String, u64>) -> u64 {
-            if u == "out" {
+        fn dfs(
+            device: &str,
+            graph: &HashMap<String, Vec<String>>,
+            memo: &mut HashMap<String, u64>,
+        ) -> u64 {
+            if device == "out" {
                 return 1;
             }
-            if let Some(&cached) = memo.get(u) {
+            if let Some(&cached) = memo.get(device) {
                 return cached;
             }
-            let sum: u64 = g
-                .get(u)
-                .map(|vs| vs.iter().map(|v| dfs(v, g, memo)).sum())
+            let sum: u64 = graph
+                .get(device)
+                .map(|outputs| outputs.iter().map(|output| dfs(output, graph, memo)).sum())
                 .unwrap_or(0);
-            memo.insert(u.to_string(), sum);
+            memo.insert(device.to_string(), sum);
             sum
         }
 
         let mut memo = HashMap::new();
-        dfs(start, &self.g, &mut memo)
+        dfs(start, &self.graph, &mut memo)
     }
 
-    fn count_paths_svr_with_masks(&self) -> u64 {
+    fn count_svr_paths_via_dac_and_fft(&self) -> u64 {
         // mask bit0 = seen dac, bit1 = seen fft
         fn dfs(
-            u: &str,
+            device: &str,
             mask: u8,
-            g: &HashMap<String, Vec<String>>,
+            graph: &HashMap<String, Vec<String>>,
             memo: &mut HashMap<(String, u8), u64>,
         ) -> u64 {
-            let mut m = mask;
-            if u == "dac" {
-                m |= 1;
-            } else if u == "fft" {
-                m |= 2;
+            let mut seen_mask = mask;
+            if device == "dac" {
+                seen_mask |= 1;
+            } else if device == "fft" {
+                seen_mask |= 2;
             }
 
-            if u == "out" {
-                return if m == 3 { 1 } else { 0 };
+            if device == "out" {
+                return if seen_mask == 3 { 1 } else { 0 };
             }
 
-            let key = (u.to_string(), m);
+            let key = (device.to_string(), seen_mask);
             if let Some(&cached) = memo.get(&key) {
                 return cached;
             }
 
-            let sum: u64 = g
-                .get(u)
-                .map(|vs| vs.iter().map(|v| dfs(v, m, g, memo)).sum())
+            let sum: u64 = graph
+                .get(device)
+                .map(|outputs| {
+                    outputs
+                        .iter()
+                        .map(|output| dfs(output, seen_mask, graph, memo))
+                        .sum()
+                })
                 .unwrap_or(0);
 
             memo.insert(key, sum);
@@ -61,27 +70,27 @@ impl Day11 {
         }
 
         let mut memo = HashMap::new();
-        dfs("svr", 0, &self.g, &mut memo)
+        dfs("svr", 0, &self.graph, &mut memo)
     }
 }
 
 impl Solution for Day11 {
     fn set_input(&mut self, lines: &[String]) {
-        self.g.clear();
+        self.graph.clear();
         for line in lines {
             let line = line.trim();
             if line.is_empty() {
                 continue;
             }
             let mut parts = line.split(':');
-            let from = parts.next().unwrap().trim().to_string();
+            let device = parts.next().unwrap().trim().to_string();
             let rest = parts.next().unwrap_or("").trim();
-            let tos: Vec<String> = if rest.is_empty() {
+            let outputs: Vec<String> = if rest.is_empty() {
                 vec![]
             } else {
                 rest.split_whitespace().map(|s| s.to_string()).collect()
             };
-            self.g.insert(from, tos);
+            self.graph.insert(device, outputs);
         }
     }
 
@@ -90,7 +99,7 @@ impl Solution for Day11 {
     }
 
     fn part2(&mut self) -> String {
-        self.count_paths_svr_with_masks().to_string()
+        self.count_svr_paths_via_dac_and_fft().to_string()
     }
 }
 

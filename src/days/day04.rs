@@ -24,53 +24,53 @@ impl Day04 {
         (1, 1),
     ];
 
-    fn make_bool_grid(&self) -> Vec<Vec<bool>> {
-        let mut out = vec![vec![false; self.cols]; self.rows];
-        for (r, row) in out.iter_mut().enumerate() {
-            for (c, cell) in row.iter_mut().enumerate() {
-                *cell = self.grid[r][c] == b'@';
+    fn paper_roll_grid(&self) -> Vec<Vec<bool>> {
+        let mut has_roll = vec![vec![false; self.cols]; self.rows];
+        for (row_index, row) in has_roll.iter_mut().enumerate() {
+            for (col_index, cell) in row.iter_mut().enumerate() {
+                *cell = self.grid[row_index][col_index] == b'@';
             }
         }
-        out
+        has_roll
     }
 
-    fn compute_degrees(&self, on: &[Vec<bool>]) -> Vec<Vec<i32>> {
-        let mut deg = vec![vec![0; self.cols]; self.rows];
+    fn count_neighbor_rolls(&self, has_roll: &[Vec<bool>]) -> Vec<Vec<i32>> {
+        let mut neighbor_counts = vec![vec![0; self.cols]; self.rows];
 
-        for r in 0..self.rows {
-            for c in 0..self.cols {
-                if !on[r][c] {
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                if !has_roll[row][col] {
                     continue;
                 }
-                let mut cnt = 0;
+                let mut count = 0;
                 for (dr, dc) in Self::DIRS {
-                    let nr = r as isize + dr;
-                    let nc = c as isize + dc;
-                    if nr >= 0
-                        && nr < self.rows as isize
-                        && nc >= 0
-                        && nc < self.cols as isize
-                        && on[nr as usize][nc as usize]
+                    let neighbor_row = row as isize + dr;
+                    let neighbor_col = col as isize + dc;
+                    if neighbor_row >= 0
+                        && neighbor_row < self.rows as isize
+                        && neighbor_col >= 0
+                        && neighbor_col < self.cols as isize
+                        && has_roll[neighbor_row as usize][neighbor_col as usize]
                     {
-                        cnt += 1;
+                        count += 1;
                     }
                 }
-                deg[r][c] = cnt;
+                neighbor_counts[row][col] = count;
             }
         }
-        deg
+        neighbor_counts
     }
 
-    fn count_adjacent(&self, r: usize, c: usize) -> i32 {
+    fn count_adjacent_rolls(&self, row: usize, col: usize) -> i32 {
         let mut count = 0;
         for (dr, dc) in Self::DIRS {
-            let nr = r as isize + dr;
-            let nc = c as isize + dc;
-            if nr >= 0
-                && nr < self.rows as isize
-                && nc >= 0
-                && nc < self.cols as isize
-                && self.grid[nr as usize][nc as usize] == b'@'
+            let neighbor_row = row as isize + dr;
+            let neighbor_col = col as isize + dc;
+            if neighbor_row >= 0
+                && neighbor_row < self.rows as isize
+                && neighbor_col >= 0
+                && neighbor_col < self.cols as isize
+                && self.grid[neighbor_row as usize][neighbor_col as usize] == b'@'
             {
                 count += 1;
             }
@@ -98,9 +98,9 @@ impl Solution for Day04 {
 
         let mut total = 0;
 
-        for r in 0..self.rows {
-            for c in 0..self.cols {
-                if self.grid[r][c] == b'@' && self.count_adjacent(r, c) < 4 {
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                if self.grid[row][col] == b'@' && self.count_adjacent_rolls(row, col) < 4 {
                     total += 1;
                 }
             }
@@ -114,49 +114,53 @@ impl Solution for Day04 {
             return "0".to_string();
         }
 
-        let mut on = self.make_bool_grid();
-        let mut deg = self.compute_degrees(&on);
+        let mut has_roll = self.paper_roll_grid();
+        let mut neighbor_counts = self.count_neighbor_rolls(&has_roll);
 
         let mut queue: Vec<(usize, usize)> = Vec::new();
 
-        for r in 0..self.rows {
-            for c in 0..self.cols {
-                if on[r][c] && deg[r][c] < 4 {
-                    queue.push((r, c));
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                if has_roll[row][col] && neighbor_counts[row][col] < 4 {
+                    queue.push((row, col));
                 }
             }
         }
 
         let mut removed = 0;
-        let mut qp = 0;
+        let mut queue_pos = 0;
 
-        while qp < queue.len() {
-            let (r, c) = queue[qp];
-            qp += 1;
+        while queue_pos < queue.len() {
+            let (row, col) = queue[queue_pos];
+            queue_pos += 1;
 
-            if !on[r][c] {
+            if !has_roll[row][col] {
                 continue;
             }
 
-            on[r][c] = false;
+            has_roll[row][col] = false;
             removed += 1;
 
             for (dr, dc) in Self::DIRS {
-                let nr = r as isize + dr;
-                let nc = c as isize + dc;
-                if nr < 0 || nr >= self.rows as isize || nc < 0 || nc >= self.cols as isize {
+                let neighbor_row = row as isize + dr;
+                let neighbor_col = col as isize + dc;
+                if neighbor_row < 0
+                    || neighbor_row >= self.rows as isize
+                    || neighbor_col < 0
+                    || neighbor_col >= self.cols as isize
+                {
                     continue;
                 }
-                let nr = nr as usize;
-                let nc = nc as usize;
+                let neighbor_row = neighbor_row as usize;
+                let neighbor_col = neighbor_col as usize;
 
-                if !on[nr][nc] {
+                if !has_roll[neighbor_row][neighbor_col] {
                     continue;
                 }
 
-                deg[nr][nc] -= 1;
-                if deg[nr][nc] == 3 {
-                    queue.push((nr, nc));
+                neighbor_counts[neighbor_row][neighbor_col] -= 1;
+                if neighbor_counts[neighbor_row][neighbor_col] == 3 {
+                    queue.push((neighbor_row, neighbor_col));
                 }
             }
         }

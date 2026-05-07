@@ -16,7 +16,7 @@ impl Day06 {
     // Helpers
     // -----------------------------------------------------------
 
-    fn find_blocks(&self) -> Vec<(usize, usize)> {
+    fn find_problem_spans(&self) -> Vec<(usize, usize)> {
         let mut is_blank = vec![true; self.cols];
 
         for (c, blank) in is_blank.iter_mut().enumerate() {
@@ -28,7 +28,7 @@ impl Day06 {
             }
         }
 
-        let mut blocks = Vec::new();
+        let mut spans = Vec::new();
         let mut in_block = false;
         let mut start = 0;
 
@@ -39,20 +39,20 @@ impl Day06 {
                     start = c;
                 }
             } else if in_block {
-                blocks.push((start, c - 1));
+                spans.push((start, c - 1));
                 in_block = false;
             }
         }
 
         if in_block {
-            blocks.push((start, self.cols - 1));
+            spans.push((start, self.cols - 1));
         }
 
-        blocks
+        spans
     }
 
-    fn get_operator(&self, b: (usize, usize)) -> u8 {
-        let (start, end) = b;
+    fn get_operator(&self, span: (usize, usize)) -> u8 {
+        let (start, end) = span;
         let row = &self.grid[self.rows - 1][start..=end];
         for &ch in row {
             if ch == b'+' || ch == b'*' {
@@ -66,9 +66,9 @@ impl Day06 {
     // Number extractors
     // -----------------------------------------------------------
 
-    fn extract_numbers_part1(&self, b: (usize, usize)) -> Vec<i64> {
-        let (start, end) = b;
-        let mut nums = Vec::with_capacity(self.rows);
+    fn extract_row_numbers(&self, span: (usize, usize)) -> Vec<i64> {
+        let (start, end) = span;
+        let mut numbers = Vec::with_capacity(self.rows);
 
         for r in 0..self.rows - 1 {
             let s = self.grid[r][start..=end]
@@ -76,15 +76,15 @@ impl Day06 {
                 .filter(|&&c| c != b' ')
                 .map(|&c| c as char)
                 .collect::<String>();
-            nums.push(s.parse::<i64>().unwrap());
+            numbers.push(s.parse::<i64>().unwrap());
         }
 
-        nums
+        numbers
     }
 
-    fn extract_numbers_part2(&self, b: (usize, usize)) -> Vec<i64> {
-        let (start, end) = b;
-        let mut nums = Vec::with_capacity(end - start + 1);
+    fn extract_column_numbers(&self, span: (usize, usize)) -> Vec<i64> {
+        let (start, end) = span;
+        let mut numbers = Vec::with_capacity(end - start + 1);
 
         for c in start..=end {
             let mut s = String::new();
@@ -94,10 +94,10 @@ impl Day06 {
                     s.push(ch as char);
                 }
             }
-            nums.push(s.parse::<i64>().unwrap());
+            numbers.push(s.parse::<i64>().unwrap());
         }
 
-        nums
+        numbers
     }
 
     // -----------------------------------------------------------
@@ -110,21 +110,21 @@ impl Day06 {
     {
         let mut total = 0;
 
-        for b in self.find_blocks() {
-            let nums = extractor(self, b);
-            let op = self.get_operator(b);
-            total += eval_numbers(&nums, op);
+        for span in self.find_problem_spans() {
+            let numbers = extractor(self, span);
+            let operator = self.get_operator(span);
+            total += eval_numbers(&numbers, operator);
         }
 
         total
     }
 }
 
-fn eval_numbers(nums: &[i64], op: u8) -> i64 {
-    if op == b'+' {
-        nums.iter().sum()
+fn eval_numbers(numbers: &[i64], operator: u8) -> i64 {
+    if operator == b'+' {
+        numbers.iter().sum()
     } else {
-        nums.iter().product()
+        numbers.iter().product()
     }
 }
 
@@ -132,29 +132,28 @@ impl Solution for Day06 {
     fn set_input(&mut self, lines: &[String]) {
         self.grid.clear();
 
-        let mut max_c = 0;
+        let mut max_cols = 0;
         for line in lines {
-            max_c = max_c.max(line.len());
+            max_cols = max_cols.max(line.len());
             self.grid.push(line.as_bytes().to_vec());
         }
 
         for row in &mut self.grid {
-            if row.len() < max_c {
-                row.resize(max_c, b' ');
+            if row.len() < max_cols {
+                row.resize(max_cols, b' ');
             }
         }
 
         self.rows = self.grid.len();
-        self.cols = max_c;
+        self.cols = max_cols;
     }
 
     fn part1(&mut self) -> String {
-        self.evaluate_blocks(Day06::extract_numbers_part1)
-            .to_string()
+        self.evaluate_blocks(Day06::extract_row_numbers).to_string()
     }
 
     fn part2(&mut self) -> String {
-        self.evaluate_blocks(Day06::extract_numbers_part2)
+        self.evaluate_blocks(Day06::extract_column_numbers)
             .to_string()
     }
 }
