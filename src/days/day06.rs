@@ -16,6 +16,7 @@ impl Day06 {
     // Helpers
     // -----------------------------------------------------------
 
+    // Scans columns for blank separators, groups each worksheet problem span, and returns inclusive column bounds.
     fn find_problem_spans(&self) -> Vec<(usize, usize)> {
         let mut is_blank = vec![true; self.cols];
 
@@ -51,6 +52,7 @@ impl Day06 {
         spans
     }
 
+    // Takes a problem span, finds its bottom-row operator, and returns '+' or '*'.
     fn get_operator(&self, span: (usize, usize)) -> u8 {
         let (start, end) = span;
         let row = &self.grid[self.rows - 1][start..=end];
@@ -66,6 +68,7 @@ impl Day06 {
     // Number extractors
     // -----------------------------------------------------------
 
+    // Takes a problem span, reads each row as one number, and returns the numbers for part 1.
     fn extract_row_numbers(&self, span: (usize, usize)) -> Vec<i64> {
         let (start, end) = span;
         let mut numbers = Vec::with_capacity(self.rows);
@@ -82,6 +85,7 @@ impl Day06 {
         numbers
     }
 
+    // Takes a problem span, reads each column as one vertical number, and returns the numbers for part 2.
     fn extract_column_numbers(&self, span: (usize, usize)) -> Vec<i64> {
         let (start, end) = span;
         let mut numbers = Vec::with_capacity(end - start + 1);
@@ -104,6 +108,7 @@ impl Day06 {
     // Shared evaluation
     // -----------------------------------------------------------
 
+    // Takes a number-extraction strategy, evaluates every worksheet problem, and returns their grand total.
     fn evaluate_blocks<F>(&self, extractor: F) -> i64
     where
         F: Fn(&Self, (usize, usize)) -> Vec<i64>,
@@ -120,6 +125,7 @@ impl Day06 {
     }
 }
 
+// Takes numbers and an operator byte, applies sum or product, and returns the problem's value.
 fn eval_numbers(numbers: &[i64], operator: u8) -> i64 {
     if operator == b'+' {
         numbers.iter().sum()
@@ -129,6 +135,7 @@ fn eval_numbers(numbers: &[i64], operator: u8) -> i64 {
 }
 
 impl Solution for Day06 {
+    // Takes the worksheet rows, pads them to equal width, and stores the normalized grid.
     fn set_input(&mut self, lines: &[String]) {
         self.grid.clear();
 
@@ -148,10 +155,12 @@ impl Solution for Day06 {
         self.cols = max_cols;
     }
 
+    // Evaluates row-oriented worksheet problems and returns their grand total.
     fn part1(&mut self) -> String {
         self.evaluate_blocks(Day06::extract_row_numbers).to_string()
     }
 
+    // Evaluates column-oriented worksheet problems and returns their grand total.
     fn part2(&mut self) -> String {
         self.evaluate_blocks(Day06::extract_column_numbers)
             .to_string()

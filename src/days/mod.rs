@@ -17,6 +17,7 @@ pub mod day10;
 pub mod day11;
 pub mod day12;
 
+// Takes a day number, constructs its solver if implemented, and returns it behind the shared Solution trait.
 pub fn make_solver(day: u32) -> Option<Box<dyn Solution>> {
     match day {
         1 => Some(Box::new(day01::Day01::new())),
@@ -35,6 +36,7 @@ pub fn make_solver(day: u32) -> Option<Box<dyn Solution>> {
     }
 }
 
+// Returns the day numbers currently implemented by this crate, used by the benchmark harness.
 pub fn implemented_days() -> Vec<u32> {
     vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 }

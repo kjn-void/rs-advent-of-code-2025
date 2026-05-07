@@ -12,6 +12,7 @@ impl Day01 {
     }
 
     #[inline]
+    // Takes any signed dial value, wraps it onto the 0..99 dial, and returns the normalized position.
     fn dial_position(value: i32) -> i32 {
         let mut position = value % 100;
         if position < 0 {
@@ -22,6 +23,7 @@ impl Day01 {
 }
 
 impl Solution for Day01 {
+    // Takes raw rotation instructions, parses them as signed click counts, and stores them for both parts.
     fn set_input(&mut self, lines: &[String]) {
         self.rotations.clear();
 
@@ -42,9 +44,7 @@ impl Solution for Day01 {
         }
     }
 
-    // ------------------------------------------------------------
-    // Part 1
-    // ------------------------------------------------------------
+    // Applies each full rotation from the starting position and returns how many rotations end at zero.
     fn part1(&mut self) -> String {
         let mut position: i32 = 50;
         let mut zero_hits = 0;
@@ -59,9 +59,7 @@ impl Solution for Day01 {
         zero_hits.to_string()
     }
 
-    // ------------------------------------------------------------
-    // Part 2
-    // ------------------------------------------------------------
+    // Walks each rotation click-by-click and returns how many times the dial crosses zero.
     fn part2(&mut self) -> String {
         let mut position: i32 = 50;
         let mut zero_hits = 0;

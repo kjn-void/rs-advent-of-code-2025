@@ -33,6 +33,7 @@ impl Day08 {
     // Distance helpers
     // -----------------------------------------------------------
 
+    // Takes two junction coordinates and returns their squared Euclidean distance for ordering edges.
     fn squared_dist(a: Point3, b: Point3) -> i64 {
         let dx = a.x - b.x;
         let dy = a.y - b.y;
@@ -40,6 +41,7 @@ impl Day08 {
         dx * dx + dy * dy + dz * dz
     }
 
+    // Takes all junctions, builds every pairwise connection edge, and returns them sorted by distance.
     fn build_sorted_edges(junctions: &[Point3]) -> Vec<Edge> {
         let junction_count = junctions.len();
         if junction_count < 2 {
@@ -65,6 +67,7 @@ impl Day08 {
     // Union-Find
     // -----------------------------------------------------------
 
+    // Takes sorted edges and a connection count, unions that many closest pairs, and returns circuit sizes.
     fn circuit_sizes_after_connections(
         junctions: &[Point3],
         edges: &[Edge],
@@ -96,6 +99,7 @@ impl Day08 {
         sizes
     }
 
+    // Takes sorted edges, connects until one circuit remains, and returns the final edge's endpoint indices.
     fn final_connection(junctions: &[Point3], edges: &[Edge]) -> (usize, usize) {
         let junction_count = junctions.len();
         if junction_count <= 1 {
@@ -120,6 +124,7 @@ impl Day08 {
     }
 }
 
+// Takes mutable distance edges, sorts them by squared distance with radix passes, and returns in-place.
 fn radix_sort_edges(edges: &mut [Edge]) {
     if edges.len() < 2 {
         return;
@@ -168,6 +173,7 @@ struct Dsu {
 }
 
 impl Dsu {
+    // Creates singleton sets for the requested node count and returns the union-find structure.
     fn new(node_count: usize) -> Self {
         let mut parent = Vec::with_capacity(node_count);
         let mut size = Vec::with_capacity(node_count);
@@ -178,6 +184,7 @@ impl Dsu {
         Self { parent, size }
     }
 
+    // Takes a node, compresses its parent path, and returns the root representative.
     fn find(&mut self, node: usize) -> usize {
         if self.parent[node] != node {
             self.parent[node] = self.find(self.parent[node]);
@@ -185,6 +192,7 @@ impl Dsu {
         self.parent[node]
     }
 
+    // Takes two nodes, joins their sets if distinct, and returns whether a merge happened.
     fn union(&mut self, a: usize, b: usize) -> bool {
         let ra = self.find(a);
         let rb = self.find(b);
@@ -206,6 +214,7 @@ impl Dsu {
 // Parsing
 // -----------------------------------------------------------
 
+// Takes an X,Y,Z input line, parses each coordinate, and returns a 3D point.
 fn parse_point3(line: &str) -> Point3 {
     let mut it = line.split(',');
     Point3 {
@@ -220,6 +229,7 @@ fn parse_point3(line: &str) -> Point3 {
 // -----------------------------------------------------------
 
 impl Solution for Day08 {
+    // Takes junction coordinate lines, parses them, and precomputes sorted connection edges.
     fn set_input(&mut self, lines: &[String]) {
         self.junctions.clear();
         for line in lines {
@@ -231,6 +241,7 @@ impl Solution for Day08 {
         self.edges = Self::build_sorted_edges(&self.junctions);
     }
 
+    // Connects the 1000 closest pairs and returns the product of the three largest circuit sizes.
     fn part1(&mut self) -> String {
         let sizes = Self::circuit_sizes_after_connections(&self.junctions, &self.edges, 1000);
         if sizes.len() < 3 {
@@ -239,6 +250,7 @@ impl Solution for Day08 {
         (sizes[0] * sizes[1] * sizes[2]).to_string()
     }
 
+    // Connects until all junctions share one circuit and returns the puzzle's final endpoint product.
     fn part2(&mut self) -> String {
         if self.junctions.len() < 2 {
             return "0".to_string();

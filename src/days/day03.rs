@@ -10,6 +10,7 @@ impl Day03 {
         Self::default()
     }
 
+    // Takes the number of batteries to choose per bank, greedily forms each maximum number, and returns their sum.
     fn max_joltage(&self, batteries_to_pick: usize) -> String {
         let mut total: i64 = 0;
 
@@ -42,6 +43,7 @@ impl Day03 {
     }
 }
 
+// Takes selected decimal digits in order, folds them into a number, and returns that joltage value.
 fn digits_to_number(digits: &[u8]) -> i64 {
     let mut value: i64 = 0;
     for &digit in digits {
@@ -51,6 +53,7 @@ fn digits_to_number(digits: &[u8]) -> i64 {
 }
 
 impl Solution for Day03 {
+    // Takes one digit string per battery bank, converts each character to a digit, and stores all banks.
     fn set_input(&mut self, lines: &[String]) {
         self.battery_banks.clear();
 
@@ -60,10 +63,12 @@ impl Solution for Day03 {
         }
     }
 
+    // Chooses two batteries from each bank and returns the total maximum joltage.
     fn part1(&mut self) -> String {
         self.max_joltage(2)
     }
 
+    // Chooses twelve batteries from each bank and returns the total maximum joltage.
     fn part2(&mut self) -> String {
         self.max_joltage(12)
     }

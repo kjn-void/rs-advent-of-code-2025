@@ -15,6 +15,7 @@ impl Day07 {
 }
 
 impl Solution for Day07 {
+    // Takes the manifold diagram, pads rows to equal width, and records the starting beam column.
     fn set_input(&mut self, lines: &[String]) {
         self.manifold.clear();
 
@@ -42,9 +43,7 @@ impl Solution for Day07 {
             .expect("Start position S not found");
     }
 
-    // ------------------------------------------------------------
-    // Part 1 — count split events
-    // ------------------------------------------------------------
+    // Propagates reachable beam columns through the manifold and returns the number of splitter hits.
     fn part1(&mut self) -> String {
         let mut buf_a = vec![false; self.cols];
         let mut buf_b = vec![false; self.cols];
@@ -84,9 +83,7 @@ impl Solution for Day07 {
         split_count.to_string()
     }
 
-    // ------------------------------------------------------------
-    // Part 2 — count all timelines
-    // ------------------------------------------------------------
+    // Propagates beam path counts through splitters and returns the number of exiting beam timelines.
     fn part2(&mut self) -> String {
         let mut buf_a = vec![0i64; self.cols];
         let mut buf_b = vec![0i64; self.cols];

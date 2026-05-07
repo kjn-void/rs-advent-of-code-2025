@@ -3,6 +3,7 @@ use std::error::Error;
 
 const YEAR: u32 = 2025;
 
+// Takes a day and AoC session cookie, fetches the input from adventofcode.com, and returns its lines.
 pub fn fetch_input(day: u32, session: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let url = format!("https://adventofcode.com/{}/day/{}/input", YEAR, day);
 
@@ -32,6 +33,7 @@ pub fn fetch_input(day: u32, session: &str) -> Result<Vec<String>, Box<dyn Error
     Ok(lines)
 }
 
+// Reads the local OS username for the User-Agent header and falls back to "anonymous".
 fn get_username() -> String {
     env::var("USER")
         .or_else(|_| env::var("USERNAME"))

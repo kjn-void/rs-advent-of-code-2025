@@ -24,6 +24,7 @@ impl Day04 {
         (1, 1),
     ];
 
+    // Converts the input map into a boolean roll-presence grid used by the removal simulation.
     fn paper_roll_grid(&self) -> Vec<Vec<bool>> {
         let mut has_roll = vec![vec![false; self.cols]; self.rows];
         for (row_index, row) in has_roll.iter_mut().enumerate() {
@@ -34,6 +35,7 @@ impl Day04 {
         has_roll
     }
 
+    // Takes a roll-presence grid, counts adjacent rolls for each occupied cell, and returns those counts.
     fn count_neighbor_rolls(&self, has_roll: &[Vec<bool>]) -> Vec<Vec<i32>> {
         let mut neighbor_counts = vec![vec![0; self.cols]; self.rows];
 
@@ -61,6 +63,7 @@ impl Day04 {
         neighbor_counts
     }
 
+    // Takes a grid coordinate and returns how many of its eight neighboring cells contain rolls.
     fn count_adjacent_rolls(&self, row: usize, col: usize) -> i32 {
         let mut count = 0;
         for (dr, dc) in Self::DIRS {
@@ -80,6 +83,7 @@ impl Day04 {
 }
 
 impl Solution for Day04 {
+    // Takes the paper-roll map, stores it as bytes, and records its dimensions.
     fn set_input(&mut self, lines: &[String]) {
         self.grid.clear();
 
@@ -91,6 +95,7 @@ impl Solution for Day04 {
         self.cols = if self.rows > 0 { self.grid[0].len() } else { 0 };
     }
 
+    // Counts rolls immediately accessible under the adjacency rule and returns that count.
     fn part1(&mut self) -> String {
         if self.rows == 0 || self.cols == 0 {
             return "0".to_string();
@@ -109,6 +114,7 @@ impl Solution for Day04 {
         total.to_string()
     }
 
+    // Repeatedly removes accessible rolls, updates neighbor counts, and returns the total removed.
     fn part2(&mut self) -> String {
         if self.rows == 0 || self.cols == 0 {
             return "0".to_string();

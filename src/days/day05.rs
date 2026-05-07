@@ -11,6 +11,7 @@ impl Day05 {
         Self::default()
     }
 
+    // Takes an ingredient ID, binary-searches merged fresh ranges, and returns whether the ID is fresh.
     fn is_fresh(&self, id: i64) -> bool {
         let mut lo = 0usize;
         let mut hi = self.fresh_ranges.len();
@@ -31,6 +32,7 @@ impl Day05 {
 }
 
 impl Solution for Day05 {
+    // Takes fresh ranges and available IDs, parses both sections, and merges overlapping ranges.
     fn set_input(&mut self, lines: &[String]) {
         self.fresh_ranges.clear();
         self.available_ids.clear();
@@ -73,6 +75,7 @@ impl Solution for Day05 {
         self.fresh_ranges = merged;
     }
 
+    // Checks all available IDs against fresh ranges and returns how many are fresh.
     fn part1(&mut self) -> String {
         let mut count = 0;
         for &id in &self.available_ids {
@@ -83,6 +86,7 @@ impl Solution for Day05 {
         count.to_string()
     }
 
+    // Sums the sizes of all merged fresh ranges and returns the total number of fresh IDs.
     fn part2(&mut self) -> String {
         let total: i64 = self
             .fresh_ranges

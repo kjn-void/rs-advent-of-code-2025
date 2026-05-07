@@ -30,6 +30,7 @@ impl Day12 {
     // Geometry helpers
     // ------------------------------------------------------------
 
+    // Takes shape cells, shifts them to the origin, sorts them, and returns a canonical cell list.
     fn normalize(cells: &[Cell]) -> Vec<Cell> {
         let min_x = cells.iter().map(|(x, _)| *x).min().unwrap();
         let min_y = cells.iter().map(|(_, y)| *y).min().unwrap();
@@ -38,6 +39,7 @@ impl Day12 {
         normalized
     }
 
+    // Takes one shape, generates all rotations/flips, deduplicates them, and returns unique orientations.
     fn orientations(shape: &Shape) -> Vec<Shape> {
         let mut orientations = Vec::new();
         let mut rotated = shape.cells.clone();
@@ -61,6 +63,7 @@ impl Day12 {
         orientations
     }
 
+    // Takes an oriented shape and region size, enumerates valid placements, and returns occupied cell indices.
     fn placements(shape: &Shape, width: usize, height: usize) -> Vec<Vec<usize>> {
         let mut placements = Vec::new();
         for x in 0..width as i32 {
@@ -88,6 +91,7 @@ impl Day12 {
     // Solver
     // ------------------------------------------------------------
 
+    // Takes a region and available shapes, backtracks over placements, and returns whether all presents fit.
     fn can_pack(region: &Region, shapes: &[Shape]) -> bool {
         let board_size = region.width * region.height;
         let mut occupied = vec![false; board_size];
@@ -102,6 +106,7 @@ impl Day12 {
             placements_by_shape.push(placements);
         }
 
+        // Chooses the most constrained remaining shape, tries valid placements, and returns success/failure.
         fn dfs(
             occupied: &mut [bool],
             remaining_counts: &mut [usize],
@@ -164,6 +169,7 @@ impl Day12 {
 // Parsing
 // ------------------------------------------------------------
 
+// Takes the mixed shape/region input, parses shape cells and region counts, and fills the provided vectors.
 fn parse_day12(lines: &[String], shapes: &mut Vec<Shape>, regions: &mut Vec<Region>) {
     let mut i = 0;
 
@@ -232,12 +238,14 @@ fn parse_day12(lines: &[String], shapes: &mut Vec<Shape>, regions: &mut Vec<Regi
 const SMALL_BOARD_MAX_AREA12: usize = 15 * 15;
 
 impl Solution for Day12 {
+    // Takes the full puzzle input, parses present shapes and target regions, and stores both.
     fn set_input(&mut self, lines: &[String]) {
         self.shapes.clear();
         self.regions.clear();
         parse_day12(lines, &mut self.shapes, &mut self.regions);
     }
 
+    // Checks each region for fit feasibility in parallel and returns how many regions can fit their presents.
     fn part1(&mut self) -> String {
         let shapes = &self.shapes;
 
@@ -267,6 +275,7 @@ impl Solution for Day12 {
             .to_string()
     }
 
+    // Day 12 has no implemented second part in this codebase and returns a placeholder.
     fn part2(&mut self) -> String {
         "N/A".to_string()
     }

@@ -4,12 +4,14 @@ use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
 
+// Takes a day number, reads the matching cached input file, and returns its lines for benchmarking.
 fn load_real_input(day: u32) -> Vec<String> {
     let path = PathBuf::from("input").join(format!("day{:02}.txt", day));
     let data = fs::read_to_string(path).expect("Missing input file (run with --fetch first)");
     data.lines().map(|s| s.to_string()).collect()
 }
 
+// Takes a Criterion runner and day, then benchmarks parsing, each part, and a full run for that solver.
 fn bench_day(c: &mut Criterion, day: u32) {
     let lines = load_real_input(day);
 
@@ -46,6 +48,7 @@ fn bench_day(c: &mut Criterion, day: u32) {
     });
 }
 
+// Registers benchmarks for every implemented day and delegates per-day setup to bench_day.
 fn benches(c: &mut Criterion) {
     for day in days::implemented_days() {
         bench_day(c, day);

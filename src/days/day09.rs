@@ -31,6 +31,7 @@ impl Day09 {
     // Part 1
     // ----------------------------------------------------------
 
+    // Takes red tile coordinates, checks all corner pairs, and returns the largest inclusive rectangle area.
     fn max_area_inclusive(red_tiles: &[Point]) -> i64 {
         let point_count = red_tiles.len();
         let mut best: i64 = 0;
@@ -49,6 +50,7 @@ impl Day09 {
     // Geometry helpers
     // ----------------------------------------------------------
 
+    // Converts the ordered red-tile boundary into horizontal and vertical segments used by containment checks.
     fn build_edges(&mut self) {
         let point_count = self.red_tiles.len();
         self.boundary.clear();
@@ -83,7 +85,7 @@ impl Day09 {
         }
     }
 
-    /// Boundary check + integer-only inside test
+    // Takes a point, checks boundary membership first, and returns whether it is inside or on the polygon.
     fn point_inside_or_on(&self, point: Point) -> bool {
         for edge in &self.horizontal_edges {
             if point.y == edge.y1 && point.x >= edge.x1 && point.x <= edge.x2 {
@@ -99,7 +101,7 @@ impl Day09 {
         self.point_inside_polygon(point)
     }
 
-    /// Integer-only point-in-polygon for orthogonal polygons
+    // Takes a point, performs an integer ray-crossing test, and returns whether it is inside the polygon.
     fn point_inside_polygon(&self, point: Point) -> bool {
         let mut inside = false;
 
@@ -113,6 +115,7 @@ impl Day09 {
         inside
     }
 
+    // Takes rectangle bounds, tests boundary intersections through its interior, and returns whether it is cut.
     fn rectangle_cut_by_polygon(&self, x1: i32, y1: i32, x2: i32, y2: i32) -> bool {
         if x1 == x2 || y1 == y2 {
             return false;
@@ -141,6 +144,7 @@ impl Day09 {
 }
 
 impl Solution for Day09 {
+    // Takes coordinate lines, parses the ordered red tiles, and clears derived polygon edges.
     fn set_input(&mut self, lines: &[String]) {
         self.red_tiles.clear();
         self.boundary.clear();
@@ -159,10 +163,12 @@ impl Solution for Day09 {
         }
     }
 
+    // Finds the largest rectangle from any red-tile corner pair and returns its area.
     fn part1(&mut self) -> String {
         Self::max_area_inclusive(&self.red_tiles).to_string()
     }
 
+    // Finds the largest rectangle contained in the boundary polygon and returns its area.
     fn part2(&mut self) -> String {
         if self.red_tiles.len() < 2 {
             return "0".to_string();

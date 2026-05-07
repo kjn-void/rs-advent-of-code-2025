@@ -34,10 +34,12 @@ struct ProblemBrief {
     description: String,
 }
 
+// Takes a day number and returns the expected cached input path for that day.
 fn input_path(day: u32) -> PathBuf {
     PathBuf::from("input").join(format!("day{:02}.txt", day))
 }
 
+// Takes a cache path, reads it line-by-line, and returns the puzzle input lines.
 fn read_local_input(path: &PathBuf) -> io::Result<Vec<String>> {
     let f = fs::File::open(path)?;
     let br = BufReader::new(f);
@@ -48,10 +50,12 @@ fn read_local_input(path: &PathBuf) -> io::Result<Vec<String>> {
     Ok(lines)
 }
 
+// Takes a directory name, creates it if needed, and returns any filesystem error.
 fn ensure_dir(name: &str) -> io::Result<()> {
     fs::create_dir_all(name)
 }
 
+// Takes fetched input lines, writes them to the day cache file, and returns any filesystem error.
 fn write_input_cache(day: u32, lines: &[String]) -> io::Result<()> {
     ensure_dir("input")?;
     let path = input_path(day);
@@ -62,6 +66,7 @@ fn write_input_cache(day: u32, lines: &[String]) -> io::Result<()> {
     Ok(())
 }
 
+// Takes a day and fetch flag, fetches online when requested, otherwise reads cache, and returns input lines.
 fn fetch_or_read_input(day: u32, force_fetch: bool) -> io::Result<Vec<String>> {
     let online = force_fetch || std::env::var("AOC_ONLINE").ok().as_deref() == Some("1");
     let session = std::env::var("AOC_SESSION").unwrap_or_default();
@@ -97,6 +102,7 @@ fn fetch_or_read_input(day: u32, force_fetch: bool) -> io::Result<Vec<String>> {
     })
 }
 
+// Takes a day number, loads embedded YAML metadata, and prints its brief description if available.
 fn print_problem_brief(day: u32) -> io::Result<()> {
     let briefs: BTreeMap<u32, ProblemBrief> = serde_yaml::from_str(PROBLEMS_YAML).map_err(|e| {
         io::Error::new(
@@ -114,6 +120,7 @@ fn print_problem_brief(day: u32) -> io::Result<()> {
     Ok(())
 }
 
+// Parses CLI arguments, loads input, optionally prints metadata, runs the requested solver, and reports results.
 fn main() -> io::Result<()> {
     let args = Args::parse();
 

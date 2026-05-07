@@ -22,6 +22,7 @@ impl Day10 {
     // ------------------------------------------------------------
     // Part 1: GF(2) solve using bitsets (optimized)
     // ------------------------------------------------------------
+    // Takes one machine, solves its light toggles over GF(2), and returns the minimum button presses.
     fn fewest_light_presses(machine: &Machine) -> i32 {
         let light_count = machine.target_lights.len();
         let button_count = machine.buttons.len();
@@ -143,6 +144,7 @@ impl Day10 {
     // ------------------------------------------------------------
     // Part 2: RREF + bounded integer DFS
     // ------------------------------------------------------------
+    // Takes one machine, solves bounded integer joltage equations, and returns the minimum button presses.
     fn fewest_joltage_presses(machine: &Machine) -> i64 {
         let light_count = machine.target_joltage.len();
         let button_count = machine.buttons.len();
@@ -240,6 +242,7 @@ impl Day10 {
         let mut best = i64::MAX;
         let mut free_values = vec![0i32; free_len];
 
+        // Recurses over free button press counts, derives pivot counts, and updates the best feasible total.
         fn dfs(
             idx: usize,
             free_bounds: &[i32],
@@ -313,6 +316,7 @@ impl Day10 {
 // ------------------------------------------------------------
 // Parsing
 // ------------------------------------------------------------
+// Takes a parenthesized/comma-separated list, parses indices, and returns the button wiring targets.
 fn parse_list(s: &str) -> Vec<usize> {
     s.trim_matches(|c| c == '(' || c == ')' || c == '{' || c == '}')
         .split(',')
@@ -320,6 +324,7 @@ fn parse_list(s: &str) -> Vec<usize> {
         .collect()
 }
 
+// Takes one machine description line, parses lights, buttons, and joltage targets, and returns a Machine.
 fn parse_machine(line: &str) -> Machine {
     let mut parts = line.split_whitespace();
 
@@ -356,6 +361,7 @@ fn parse_machine(line: &str) -> Machine {
 // Trait implementation
 // ------------------------------------------------------------
 impl Solution for Day10 {
+    // Takes machine description lines, parses each non-empty line, and stores all machines.
     fn set_input(&mut self, lines: &[String]) {
         self.machines.clear();
         for line in lines {
@@ -365,6 +371,7 @@ impl Solution for Day10 {
         }
     }
 
+    // Solves all machines' light states in parallel and returns the summed minimum button presses.
     fn part1(&mut self) -> String {
         self.machines
             .par_iter()
@@ -373,6 +380,7 @@ impl Solution for Day10 {
             .to_string()
     }
 
+    // Solves all machines' joltage targets in parallel and returns the summed minimum button presses.
     fn part2(&mut self) -> String {
         self.machines
             .par_iter()

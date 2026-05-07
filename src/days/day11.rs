@@ -8,6 +8,7 @@ pub struct Day11 {
 
 impl Day11 {
     fn count_paths_from(&self, start: &str) -> u64 {
+        // Takes a device name, memoizes outgoing path counts, and returns paths from that device to out.
         fn dfs(
             device: &str,
             graph: &HashMap<String, Vec<String>>,
@@ -31,8 +32,10 @@ impl Day11 {
         dfs(start, &self.graph, &mut memo)
     }
 
+    // Counts paths from svr to out that visit both dac and fft, returning the matching path total.
     fn count_svr_paths_via_dac_and_fft(&self) -> u64 {
         // mask bit0 = seen dac, bit1 = seen fft
+        // Takes a device and seen-mask state, memoizes it, and returns valid paths to out from there.
         fn dfs(
             device: &str,
             mask: u8,
@@ -75,6 +78,7 @@ impl Day11 {
 }
 
 impl Solution for Day11 {
+    // Takes device wiring lines, parses outgoing edges, and stores the directed graph.
     fn set_input(&mut self, lines: &[String]) {
         self.graph.clear();
         for line in lines {
@@ -94,10 +98,12 @@ impl Solution for Day11 {
         }
     }
 
+    // Counts all paths from you to out and returns that path total.
     fn part1(&mut self) -> String {
         self.count_paths_from("you").to_string()
     }
 
+    // Counts all svr-to-out paths that include dac and fft and returns that path total.
     fn part2(&mut self) -> String {
         self.count_svr_paths_via_dac_and_fft().to_string()
     }

@@ -15,6 +15,7 @@ impl Day02 {
 // Helpers
 // ------------------------------------------------------------
 
+// Builds powers of ten used for digit-length arithmetic without repeated runtime multiplication.
 const fn pow10_table() -> [i64; 18] {
     let mut t = [0i64; 18];
     let mut x = 1i64;
@@ -29,6 +30,7 @@ const fn pow10_table() -> [i64; 18] {
 
 const POW10: [i64; 18] = pow10_table();
 
+// Takes a digit string, finds its shortest repeating block length, and returns the full length if unique.
 fn smallest_repeating_block_len(digits: &str) -> usize {
     let digit_count = digits.len();
     for block_len in 1..=digit_count / 2 {
@@ -55,6 +57,7 @@ fn smallest_repeating_block_len(digits: &str) -> usize {
 // ------------------------------------------------------------
 
 impl Solution for Day02 {
+    // Takes the comma-separated ID range line, parses inclusive bounds, and stores them for enumeration.
     fn set_input(&mut self, lines: &[String]) {
         self.id_ranges.clear();
 
@@ -74,10 +77,7 @@ impl Solution for Day02 {
         }
     }
 
-    // --------------------------------------------------------
-    // Part 1
-    // --------------------------------------------------------
-
+    // Enumerates IDs formed by repeating a block exactly twice and returns their sum across all ranges.
     fn part1(&mut self) -> String {
         let mut sum: i64 = 0;
 
@@ -113,10 +113,7 @@ impl Solution for Day02 {
         sum.to_string()
     }
 
-    // --------------------------------------------------------
-    // Part 2
-    // --------------------------------------------------------
-
+    // Enumerates IDs formed by repeating any primitive block multiple times and returns their summed value.
     fn part2(&mut self) -> String {
         let mut total: i64 = 0;
 

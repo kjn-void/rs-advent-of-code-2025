@@ -30,6 +30,7 @@ rs-advent-of-code-2025/
 ├── Cargo.toml
 ├── Cargo.lock
 ├── README.md
+├── problems.yaml          # brief puzzle descriptions for verbose mode
 │
 ├── src/
 │   ├── main.rs            # CLI entry point (clap-based)
@@ -74,6 +75,20 @@ Run and force online fetch:
 ```bash
 cargo run -- --day 9 --fetch
 ```
+
+Run with a brief puzzle description before solving:
+
+```bash
+cargo run -- --day 9 --verbose
+```
+
+The short form is also available:
+
+```bash
+cargo run -- --day 9 -v
+```
+
+Verbose mode reads the embedded `problems.yaml` metadata and prints the selected day’s title and one-line description before running the solver.
 
 If `--part` is omitted, **both parts are executed**.
 
