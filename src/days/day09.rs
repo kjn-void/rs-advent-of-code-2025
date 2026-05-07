@@ -14,6 +14,7 @@ struct Edge {
     y2: i32,
 }
 
+#[derive(Default)]
 pub struct Day09 {
     reds: Vec<Pt>,
     edges: Vec<Edge>,
@@ -23,12 +24,7 @@ pub struct Day09 {
 
 impl Day09 {
     pub fn new() -> Self {
-        Self {
-            reds: Vec::new(),
-            edges: Vec::new(),
-            hor_edges: Vec::new(),
-            vert_edges: Vec::new(),
-        }
+        Self::default()
     }
 
     // ----------------------------------------------------------

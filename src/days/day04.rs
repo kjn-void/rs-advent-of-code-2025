@@ -1,5 +1,6 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day04 {
     grid: Vec<Vec<u8>>,
     rows: usize,
@@ -8,25 +9,26 @@ pub struct Day04 {
 
 impl Day04 {
     pub fn new() -> Self {
-        Self {
-            grid: Vec::new(),
-            rows: 0,
-            cols: 0,
-        }
+        Self::default()
     }
 
     // 8 directions
     const DIRS: [(isize, isize); 8] = [
-        (-1, -1), (-1, 0), (-1, 1),
-        (0, -1),           (0, 1),
-        (1, -1),  (1, 0),  (1, 1),
+        (-1, -1),
+        (-1, 0),
+        (-1, 1),
+        (0, -1),
+        (0, 1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
     ];
 
     fn make_bool_grid(&self) -> Vec<Vec<bool>> {
         let mut out = vec![vec![false; self.cols]; self.rows];
-        for r in 0..self.rows {
-            for c in 0..self.cols {
-                out[r][c] = self.grid[r][c] == b'@';
+        for (r, row) in out.iter_mut().enumerate() {
+            for (c, cell) in row.iter_mut().enumerate() {
+                *cell = self.grid[r][c] == b'@';
             }
         }
         out
@@ -142,11 +144,7 @@ impl Solution for Day04 {
             for (dr, dc) in Self::DIRS {
                 let nr = r as isize + dr;
                 let nc = c as isize + dc;
-                if nr < 0
-                    || nr >= self.rows as isize
-                    || nc < 0
-                    || nc >= self.cols as isize
-                {
+                if nr < 0 || nr >= self.rows as isize || nc < 0 || nc >= self.cols as isize {
                     continue;
                 }
                 let nr = nr as usize;

@@ -8,11 +8,7 @@ pub struct Day11 {
 
 impl Day11 {
     fn count_paths_from(&self, start: &str) -> u64 {
-        fn dfs(
-            u: &str,
-            g: &HashMap<String, Vec<String>>,
-            memo: &mut HashMap<String, u64>,
-        ) -> u64 {
+        fn dfs(u: &str, g: &HashMap<String, Vec<String>>, memo: &mut HashMap<String, u64>) -> u64 {
             if u == "out" {
                 return 1;
             }

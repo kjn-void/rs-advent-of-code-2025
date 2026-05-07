@@ -15,6 +15,7 @@ struct Region {
     counts: Vec<usize>,
 }
 
+#[derive(Default)]
 pub struct Day12 {
     shapes: Vec<Shape>,
     regions: Vec<Region>,
@@ -22,10 +23,7 @@ pub struct Day12 {
 
 impl Day12 {
     pub fn new() -> Self {
-        Self {
-            shapes: Vec::new(),
-            regions: Vec::new(),
-        }
+        Self::default()
     }
 
     // ------------------------------------------------------------

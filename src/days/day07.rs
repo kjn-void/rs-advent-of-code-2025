@@ -1,5 +1,6 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day07 {
     grid: Vec<Vec<u8>>,
     rows: usize,
@@ -9,12 +10,7 @@ pub struct Day07 {
 
 impl Day07 {
     pub fn new() -> Self {
-        Self {
-            grid: Vec::new(),
-            rows: 0,
-            cols: 0,
-            start_col: 0,
-        }
+        Self::default()
     }
 }
 

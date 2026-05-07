@@ -1,13 +1,12 @@
 use aoc2025::days;
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::hint::black_box;
 use std::fs;
+use std::hint::black_box;
 use std::path::PathBuf;
 
 fn load_real_input(day: u32) -> Vec<String> {
     let path = PathBuf::from("input").join(format!("day{:02}.txt", day));
-    let data = fs::read_to_string(path)
-        .expect("Missing input file (run with --fetch first)");
+    let data = fs::read_to_string(path).expect("Missing input file (run with --fetch first)");
     data.lines().map(|s| s.to_string()).collect()
 }
 

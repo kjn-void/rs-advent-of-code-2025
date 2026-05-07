@@ -9,15 +9,14 @@ pub struct Machine {
     pub buttons: Vec<Vec<usize>>,
 }
 
+#[derive(Default)]
 pub struct Day10 {
     pub machines: Vec<Machine>,
 }
 
 impl Day10 {
     pub fn new() -> Self {
-        Self {
-            machines: Vec::new(),
-        }
+        Self::default()
     }
 
     // ------------------------------------------------------------
@@ -30,7 +29,7 @@ impl Day10 {
             return 0;
         }
 
-        let words = (m + 1 + 63) / 64;
+        let words = (m + 1).div_ceil(64);
         let mut mat = vec![0u64; n * words];
 
         let bit = |row: usize, col: usize| -> usize { row * words + (col >> 6) };
@@ -55,7 +54,7 @@ impl Day10 {
         let mut row = 0;
 
         // Gaussian elimination (GF2)
-        for col in 0..m {
+        for (col, pivot) in pivot_col.iter_mut().enumerate() {
             if row >= n {
                 break;
             }
@@ -84,7 +83,7 @@ impl Day10 {
                 }
             }
 
-            pivot_col[col] = Some(row);
+            *pivot = Some(row);
 
             for r in 0..n {
                 if r != row {
@@ -369,7 +368,7 @@ impl Solution for Day10 {
     fn part2(&mut self) -> String {
         self.machines
             .par_iter()
-            .map(|m| Self::solve_joltage(m))
+            .map(Self::solve_joltage)
             .sum::<i64>()
             .to_string()
     }

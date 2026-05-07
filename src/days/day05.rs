@@ -1,5 +1,6 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day05 {
     ranges: Vec<(i64, i64)>,
     ids: Vec<i64>,
@@ -7,10 +8,7 @@ pub struct Day05 {
 
 impl Day05 {
     pub fn new() -> Self {
-        Self {
-            ranges: Vec::new(),
-            ids: Vec::new(),
-        }
+        Self::default()
     }
 
     fn is_fresh(&self, id: i64) -> bool {
@@ -87,11 +85,7 @@ impl Solution for Day05 {
     }
 
     fn part2(&mut self) -> String {
-        let total: i64 = self
-            .ranges
-            .iter()
-            .map(|(a, b)| b - a + 1)
-            .sum();
+        let total: i64 = self.ranges.iter().map(|(a, b)| b - a + 1).sum();
         total.to_string()
     }
 }
@@ -103,17 +97,7 @@ mod tests {
 
     fn example_input() -> Vec<String> {
         vec![
-            "3-5",
-            "10-14",
-            "16-20",
-            "12-18",
-            "",
-            "1",
-            "5",
-            "8",
-            "11",
-            "17",
-            "32",
+            "3-5", "10-14", "16-20", "12-18", "", "1", "5", "8", "11", "17", "32",
         ]
         .into_iter()
         .map(|s| s.to_string())

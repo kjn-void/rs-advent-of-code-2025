@@ -1,5 +1,6 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day01 {
     // Signed deltas: Rn => +n, Ln => -n
     moves: Vec<i32>,
@@ -7,7 +8,7 @@ pub struct Day01 {
 
 impl Day01 {
     pub fn new() -> Self {
-        Self { moves: Vec::new() }
+        Self::default()
     }
 
     #[inline]
@@ -96,8 +97,7 @@ mod tests {
 
     fn example_input() -> Vec<String> {
         vec![
-            "L68", "L30", "R48", "L5", "R60",
-            "L55", "L1", "L99", "R14", "L82",
+            "L68", "L30", "R48", "L5", "R60", "L55", "L1", "L99", "R14", "L82",
         ]
         .into_iter()
         .map(|s| s.to_string())

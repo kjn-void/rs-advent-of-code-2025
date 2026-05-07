@@ -1,8 +1,8 @@
+use aoc2025::{aocnet, days};
 use clap::Parser;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
-use aoc2025::{days, aocnet};
 
 #[derive(Parser, Debug)]
 #[command(name = "aoc2025")]

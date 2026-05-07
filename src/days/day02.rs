@@ -1,12 +1,13 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day02 {
     ranges: Vec<(i64, i64)>, // inclusive [L, R]
 }
 
 impl Day02 {
     pub fn new() -> Self {
-        Self { ranges: Vec::new() }
+        Self::default()
     }
 }
 
@@ -32,7 +33,7 @@ const P10: [i64; 18] = pow10_table();
 fn smallest_block(s: &str) -> usize {
     let n = s.len();
     for k in 1..=n / 2 {
-        if n % k != 0 {
+        if !n.is_multiple_of(k) {
             continue;
         }
         let block = &s[..k];
@@ -123,9 +124,7 @@ impl Solution for Day02 {
         for &(l, r) in &self.ranges {
             let max_digits = r.to_string().len();
 
-            for total_digits in 2..=max_digits {
-                let ten_len = P10[total_digits];
-
+            for (total_digits, &ten_len) in P10.iter().enumerate().take(max_digits + 1).skip(2) {
                 for m in 2..=total_digits {
                     if total_digits % m != 0 {
                         continue;
@@ -179,12 +178,10 @@ mod tests {
     use crate::days::Solution;
 
     fn example_input() -> Vec<String> {
-        vec![
-            "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,\
+        vec!["11-22,95-115,998-1012,1188511880-1188511890,222220-222224,\
 1698522-1698528,446443-446449,38593856-38593862,565653-565659,\
 824824821-824824827,2121212118-2121212124"
-                .to_string(),
-        ]
+            .to_string()]
     }
 
     #[test]

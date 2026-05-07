@@ -1,18 +1,15 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day06 {
     grid: Vec<Vec<u8>>,
-    r: usize,
-    c: usize,
+    rows: usize,
+    cols: usize,
 }
 
 impl Day06 {
     pub fn new() -> Self {
-        Self {
-            grid: Vec::new(),
-            r: 0,
-            c: 0,
-        }
+        Self::default()
     }
 
     // -----------------------------------------------------------
@@ -20,12 +17,12 @@ impl Day06 {
     // -----------------------------------------------------------
 
     fn find_blocks(&self) -> Vec<(usize, usize)> {
-        let mut is_blank = vec![true; self.c];
+        let mut is_blank = vec![true; self.cols];
 
-        for c in 0..self.c {
-            for r in 0..self.r {
+        for (c, blank) in is_blank.iter_mut().enumerate() {
+            for r in 0..self.rows {
                 if self.grid[r][c] != b' ' {
-                    is_blank[c] = false;
+                    *blank = false;
                     break;
                 }
             }
@@ -35,8 +32,8 @@ impl Day06 {
         let mut in_block = false;
         let mut start = 0;
 
-        for c in 0..self.c {
-            if !is_blank[c] {
+        for (c, &blank) in is_blank.iter().enumerate() {
+            if !blank {
                 if !in_block {
                     in_block = true;
                     start = c;
@@ -48,7 +45,7 @@ impl Day06 {
         }
 
         if in_block {
-            blocks.push((start, self.c - 1));
+            blocks.push((start, self.cols - 1));
         }
 
         blocks
@@ -56,7 +53,7 @@ impl Day06 {
 
     fn get_operator(&self, b: (usize, usize)) -> u8 {
         let (start, end) = b;
-        let row = &self.grid[self.r - 1][start..=end];
+        let row = &self.grid[self.rows - 1][start..=end];
         for &ch in row {
             if ch == b'+' || ch == b'*' {
                 return ch;
@@ -71,9 +68,9 @@ impl Day06 {
 
     fn extract_numbers_part1(&self, b: (usize, usize)) -> Vec<i64> {
         let (start, end) = b;
-        let mut nums = Vec::with_capacity(self.r);
+        let mut nums = Vec::with_capacity(self.rows);
 
-        for r in 0..self.r - 1 {
+        for r in 0..self.rows - 1 {
             let s = self.grid[r][start..=end]
                 .iter()
                 .filter(|&&c| c != b' ')
@@ -91,7 +88,7 @@ impl Day06 {
 
         for c in start..=end {
             let mut s = String::new();
-            for r in 0..self.r - 1 {
+            for r in 0..self.rows - 1 {
                 let ch = self.grid[r][c];
                 if ch != b' ' {
                     s.push(ch as char);
@@ -147,8 +144,8 @@ impl Solution for Day06 {
             }
         }
 
-        self.r = self.grid.len();
-        self.c = max_c;
+        self.rows = self.grid.len();
+        self.cols = max_c;
     }
 
     fn part1(&mut self) -> String {

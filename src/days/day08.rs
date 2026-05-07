@@ -18,6 +18,7 @@ struct Edge {
     j: usize,
 }
 
+#[derive(Default)]
 pub struct Day08 {
     points: Vec<Vec3>,
     edges: Vec<Edge>,
@@ -25,10 +26,7 @@ pub struct Day08 {
 
 impl Day08 {
     pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            edges: Vec::new(),
-        }
+        Self::default()
     }
 
     // -----------------------------------------------------------
@@ -73,11 +71,10 @@ impl Day08 {
             return Vec::new();
         }
 
-        let mut uf = DSU::new(n);
+        let mut uf = Dsu::new(n);
         let limit = k.min(edges.len());
 
-        for idx in 0..limit {
-            let e = edges[idx];
+        for e in edges.iter().take(limit) {
             uf.union(e.i, e.j);
         }
 
@@ -101,7 +98,7 @@ impl Day08 {
             return (0, 0);
         }
 
-        let mut uf = DSU::new(n);
+        let mut uf = Dsu::new(n);
         let mut components = n;
         let mut last = (0, 0);
 
@@ -158,15 +155,15 @@ fn radix_sort_edges(edges: &mut [Edge]) {
 }
 
 // -----------------------------------------------------------
-// DSU
+// Disjoint set union
 // -----------------------------------------------------------
 
-struct DSU {
+struct Dsu {
     parent: Vec<usize>,
     size: Vec<usize>,
 }
 
-impl DSU {
+impl Dsu {
     fn new(n: usize) -> Self {
         let mut parent = Vec::with_capacity(n);
         let mut size = Vec::with_capacity(n);

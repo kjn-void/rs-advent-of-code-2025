@@ -1,12 +1,13 @@
 use crate::days::Solution;
 
+#[derive(Default)]
 pub struct Day03 {
     banks: Vec<Vec<u8>>, // digits 0–9
 }
 
 impl Day03 {
     pub fn new() -> Self {
-        Self { banks: Vec::new() }
+        Self::default()
     }
 
     fn max_joltage(&self, pick: usize) -> String {
@@ -20,10 +21,7 @@ impl Day03 {
             for (i, &dig) in bank.iter().enumerate() {
                 let remaining = n - i;
 
-                while !stack.is_empty()
-                    && remaining > need
-                    && *stack.last().unwrap() < dig
-                {
+                while !stack.is_empty() && remaining > need && *stack.last().unwrap() < dig {
                     stack.pop();
                     need += 1;
                 }
@@ -54,10 +52,7 @@ impl Solution for Day03 {
         self.banks.clear();
 
         for line in lines {
-            let digits = line
-                .bytes()
-                .map(|b| b - b'0')
-                .collect::<Vec<_>>();
+            let digits = line.bytes().map(|b| b - b'0').collect::<Vec<_>>();
             self.banks.push(digits);
         }
     }
