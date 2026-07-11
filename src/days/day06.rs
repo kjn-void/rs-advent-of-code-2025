@@ -3,6 +3,7 @@ use crate::days::Solution;
 #[derive(Default)]
 pub struct Day06 {
     grid: Vec<Vec<u8>>,
+    spans: Vec<(usize, usize)>,
     rows: usize,
     cols: usize,
 }
@@ -64,73 +65,51 @@ impl Day06 {
         b'*' // AoC guarantees this won't happen
     }
 
-    // -----------------------------------------------------------
-    // Number extractors
-    // -----------------------------------------------------------
-
-    // Takes a problem span, reads each row as one number, and returns the numbers for part 1.
-    fn extract_row_numbers(&self, span: (usize, usize)) -> Vec<i64> {
-        let (start, end) = span;
-        let mut numbers = Vec::with_capacity(self.rows);
-
-        for r in 0..self.rows - 1 {
-            let s = self.grid[r][start..=end]
-                .iter()
-                .filter(|&&c| c != b' ')
-                .map(|&c| c as char)
-                .collect::<String>();
-            numbers.push(s.parse::<i64>().unwrap());
-        }
-
-        numbers
-    }
-
-    // Takes a problem span, reads each column as one vertical number, and returns the numbers for part 2.
-    fn extract_column_numbers(&self, span: (usize, usize)) -> Vec<i64> {
-        let (start, end) = span;
-        let mut numbers = Vec::with_capacity(end - start + 1);
-
-        for c in start..=end {
-            let mut s = String::new();
-            for r in 0..self.rows - 1 {
-                let ch = self.grid[r][c];
-                if ch != b' ' {
-                    s.push(ch as char);
+    // Reads each worksheet row directly as decimal digits and returns the part 1 total.
+    fn evaluate_rows(&self) -> i64 {
+        let mut total = 0;
+        for &span @ (start, end) in &self.spans {
+            let operator = self.get_operator(span);
+            let mut value = if operator == b'+' { 0 } else { 1 };
+            for row in &self.grid[..self.rows - 1] {
+                let number = row[start..=end]
+                    .iter()
+                    .filter(|&&byte| byte != b' ')
+                    .fold(0i64, |number, &byte| number * 10 + i64::from(byte - b'0'));
+                if operator == b'+' {
+                    value += number;
+                } else {
+                    value *= number;
                 }
             }
-            numbers.push(s.parse::<i64>().unwrap());
+            total += value;
         }
-
-        numbers
-    }
-
-    // -----------------------------------------------------------
-    // Shared evaluation
-    // -----------------------------------------------------------
-
-    // Takes a number-extraction strategy, evaluates every worksheet problem, and returns their grand total.
-    fn evaluate_blocks<F>(&self, extractor: F) -> i64
-    where
-        F: Fn(&Self, (usize, usize)) -> Vec<i64>,
-    {
-        let mut total = 0;
-
-        for span in self.find_problem_spans() {
-            let numbers = extractor(self, span);
-            let operator = self.get_operator(span);
-            total += eval_numbers(&numbers, operator);
-        }
-
         total
     }
-}
 
-// Takes numbers and an operator byte, applies sum or product, and returns the problem's value.
-fn eval_numbers(numbers: &[i64], operator: u8) -> i64 {
-    if operator == b'+' {
-        numbers.iter().sum()
-    } else {
-        numbers.iter().product()
+    // Reads each worksheet column directly as decimal digits and returns the part 2 total.
+    fn evaluate_columns(&self) -> i64 {
+        let mut total = 0;
+        for &span @ (start, end) in &self.spans {
+            let operator = self.get_operator(span);
+            let mut value = if operator == b'+' { 0 } else { 1 };
+            for col in start..=end {
+                let mut number = 0i64;
+                for row in &self.grid[..self.rows - 1] {
+                    let byte = row[col];
+                    if byte != b' ' {
+                        number = number * 10 + i64::from(byte - b'0');
+                    }
+                }
+                if operator == b'+' {
+                    value += number;
+                } else {
+                    value *= number;
+                }
+            }
+            total += value;
+        }
+        total
     }
 }
 
@@ -153,17 +132,17 @@ impl Solution for Day06 {
 
         self.rows = self.grid.len();
         self.cols = max_cols;
+        self.spans = self.find_problem_spans();
     }
 
     // Evaluates row-oriented worksheet problems and returns their grand total.
     fn part1(&mut self) -> String {
-        self.evaluate_blocks(Day06::extract_row_numbers).to_string()
+        self.evaluate_rows().to_string()
     }
 
     // Evaluates column-oriented worksheet problems and returns their grand total.
     fn part2(&mut self) -> String {
-        self.evaluate_blocks(Day06::extract_column_numbers)
-            .to_string()
+        self.evaluate_columns().to_string()
     }
 }
 

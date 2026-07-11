@@ -130,37 +130,52 @@ fn radix_sort_edges(edges: &mut [Edge]) {
         return;
     }
 
-    const RADIX_BITS: usize = 16;
+    const RADIX_BITS: usize = 12;
     const BUCKETS: usize = 1 << RADIX_BITS;
     const MASK: u64 = (BUCKETS as u64) - 1;
 
-    let mut src = edges.to_vec();
-    let mut dst = vec![edges[0]; edges.len()];
+    let mut scratch = vec![edges[0]; edges.len()];
     let mut counts = vec![0usize; BUCKETS];
 
-    for shift in (0..64).step_by(RADIX_BITS) {
+    let max_key = edges
+        .iter()
+        .map(|edge| edge.distance_sq as u64)
+        .max()
+        .unwrap_or(0);
+    let pass_count = ((64 - max_key.leading_zeros() as usize).max(1)).div_ceil(RADIX_BITS);
+
+    fn pass(src: &[Edge], dst: &mut [Edge], counts: &mut [usize], shift: usize, mask: u64) {
         counts.fill(0);
-        for edge in src.iter() {
-            counts[((edge.distance_sq as u64 >> shift) & MASK) as usize] += 1;
+        for edge in src {
+            counts[((edge.distance_sq as u64 >> shift) & mask) as usize] += 1;
         }
 
         let mut sum = 0;
-        for count in counts.iter_mut() {
+        for count in &mut *counts {
             let current = *count;
             *count = sum;
             sum += current;
         }
 
-        for edge in src.iter().copied() {
-            let bucket = ((edge.distance_sq as u64 >> shift) & MASK) as usize;
+        for &edge in src {
+            let bucket = ((edge.distance_sq as u64 >> shift) & mask) as usize;
             dst[counts[bucket]] = edge;
             counts[bucket] += 1;
         }
-
-        std::mem::swap(&mut src, &mut dst);
     }
 
-    edges.copy_from_slice(&src);
+    for pass_index in 0..pass_count {
+        let shift = pass_index * RADIX_BITS;
+        if pass_index.is_multiple_of(2) {
+            pass(edges, &mut scratch, &mut counts, shift, MASK);
+        } else {
+            pass(&scratch, edges, &mut counts, shift, MASK);
+        }
+    }
+
+    if !pass_count.is_multiple_of(2) {
+        edges.copy_from_slice(&scratch);
+    }
 }
 
 // -----------------------------------------------------------
@@ -318,5 +333,31 @@ mod tests {
         let want: i64 = 25272;
 
         assert_eq!(got, want);
+    }
+
+    #[test]
+    fn radix_sort_handles_each_required_pass_count() {
+        let keys = [
+            1,
+            (1 << 16) + 3,
+            7,
+            (1 << 32) + 5,
+            (1i64 << 48) + 9,
+            i64::MAX,
+            0,
+        ];
+        let mut edges: Vec<Edge> = keys
+            .into_iter()
+            .enumerate()
+            .map(|(index, distance_sq)| Edge {
+                distance_sq,
+                a: index,
+                b: index + 1,
+            })
+            .collect();
+        radix_sort_edges(&mut edges);
+        assert!(edges
+            .windows(2)
+            .all(|pair| pair[0].distance_sq <= pair[1].distance_sq));
     }
 }

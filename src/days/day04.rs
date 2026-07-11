@@ -2,7 +2,7 @@ use crate::days::Solution;
 
 #[derive(Default)]
 pub struct Day04 {
-    grid: Vec<Vec<u8>>,
+    grid: Vec<u8>,
     rows: usize,
     cols: usize,
 }
@@ -25,23 +25,18 @@ impl Day04 {
     ];
 
     // Converts the input map into a boolean roll-presence grid used by the removal simulation.
-    fn paper_roll_grid(&self) -> Vec<Vec<bool>> {
-        let mut has_roll = vec![vec![false; self.cols]; self.rows];
-        for (row_index, row) in has_roll.iter_mut().enumerate() {
-            for (col_index, cell) in row.iter_mut().enumerate() {
-                *cell = self.grid[row_index][col_index] == b'@';
-            }
-        }
-        has_roll
+    fn paper_roll_grid(&self) -> Vec<bool> {
+        self.grid.iter().map(|&cell| cell == b'@').collect()
     }
 
     // Takes a roll-presence grid, counts adjacent rolls for each occupied cell, and returns those counts.
-    fn count_neighbor_rolls(&self, has_roll: &[Vec<bool>]) -> Vec<Vec<i32>> {
-        let mut neighbor_counts = vec![vec![0; self.cols]; self.rows];
+    fn count_neighbor_rolls(&self, has_roll: &[bool]) -> Vec<u8> {
+        let mut neighbor_counts = vec![0; self.grid.len()];
 
         for row in 0..self.rows {
             for col in 0..self.cols {
-                if !has_roll[row][col] {
+                let index = row * self.cols + col;
+                if !has_roll[index] {
                     continue;
                 }
                 let mut count = 0;
@@ -52,12 +47,12 @@ impl Day04 {
                         && neighbor_row < self.rows as isize
                         && neighbor_col >= 0
                         && neighbor_col < self.cols as isize
-                        && has_roll[neighbor_row as usize][neighbor_col as usize]
+                        && has_roll[neighbor_row as usize * self.cols + neighbor_col as usize]
                     {
                         count += 1;
                     }
                 }
-                neighbor_counts[row][col] = count;
+                neighbor_counts[index] = count;
             }
         }
         neighbor_counts
@@ -73,7 +68,7 @@ impl Day04 {
                 && neighbor_row < self.rows as isize
                 && neighbor_col >= 0
                 && neighbor_col < self.cols as isize
-                && self.grid[neighbor_row as usize][neighbor_col as usize] == b'@'
+                && self.grid[neighbor_row as usize * self.cols + neighbor_col as usize] == b'@'
             {
                 count += 1;
             }
@@ -87,12 +82,12 @@ impl Solution for Day04 {
     fn set_input(&mut self, lines: &[String]) {
         self.grid.clear();
 
+        self.rows = lines.len();
+        self.cols = lines.first().map_or(0, String::len);
+        self.grid.reserve(self.rows * self.cols);
         for line in lines {
-            self.grid.push(line.as_bytes().to_vec());
+            self.grid.extend_from_slice(line.as_bytes());
         }
-
-        self.rows = self.grid.len();
-        self.cols = if self.rows > 0 { self.grid[0].len() } else { 0 };
     }
 
     // Counts rolls immediately accessible under the adjacency rule and returns that count.
@@ -105,7 +100,9 @@ impl Solution for Day04 {
 
         for row in 0..self.rows {
             for col in 0..self.cols {
-                if self.grid[row][col] == b'@' && self.count_adjacent_rolls(row, col) < 4 {
+                if self.grid[row * self.cols + col] == b'@'
+                    && self.count_adjacent_rolls(row, col) < 4
+                {
                     total += 1;
                 }
             }
@@ -127,7 +124,8 @@ impl Solution for Day04 {
 
         for row in 0..self.rows {
             for col in 0..self.cols {
-                if has_roll[row][col] && neighbor_counts[row][col] < 4 {
+                let index = row * self.cols + col;
+                if has_roll[index] && neighbor_counts[index] < 4 {
                     queue.push((row, col));
                 }
             }
@@ -139,12 +137,13 @@ impl Solution for Day04 {
         while queue_pos < queue.len() {
             let (row, col) = queue[queue_pos];
             queue_pos += 1;
+            let index = row * self.cols + col;
 
-            if !has_roll[row][col] {
+            if !has_roll[index] {
                 continue;
             }
 
-            has_roll[row][col] = false;
+            has_roll[index] = false;
             removed += 1;
 
             for (dr, dc) in Self::DIRS {
@@ -159,13 +158,14 @@ impl Solution for Day04 {
                 }
                 let neighbor_row = neighbor_row as usize;
                 let neighbor_col = neighbor_col as usize;
+                let neighbor_index = neighbor_row * self.cols + neighbor_col;
 
-                if !has_roll[neighbor_row][neighbor_col] {
+                if !has_roll[neighbor_index] {
                     continue;
                 }
 
-                neighbor_counts[neighbor_row][neighbor_col] -= 1;
-                if neighbor_counts[neighbor_row][neighbor_col] == 3 {
+                neighbor_counts[neighbor_index] -= 1;
+                if neighbor_counts[neighbor_index] == 3 {
                     queue.push((neighbor_row, neighbor_col));
                 }
             }

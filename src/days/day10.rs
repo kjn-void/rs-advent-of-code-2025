@@ -389,3 +389,76 @@ impl Solution for Day10 {
             .to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const EXAMPLE: [&str; 3] = [
+        "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}",
+        "[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}",
+        "[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}",
+    ];
+
+    fn example_input() -> Vec<String> {
+        EXAMPLE.iter().map(ToString::to_string).collect()
+    }
+
+    fn brute_joltage(machine: &Machine) -> i64 {
+        fn dfs(machine: &Machine, button: usize, values: &mut [i32], presses: i64, best: &mut i64) {
+            if presses >= *best {
+                return;
+            }
+            if button == machine.buttons.len() {
+                if values == machine.target_joltage {
+                    *best = presses;
+                }
+                return;
+            }
+
+            let bound = machine.buttons[button]
+                .iter()
+                .map(|&light| machine.target_joltage[light] - values[light])
+                .min()
+                .unwrap_or(0);
+            for count in 0..=bound {
+                dfs(
+                    machine,
+                    button + 1,
+                    values,
+                    presses + i64::from(count),
+                    best,
+                );
+                for &light in &machine.buttons[button] {
+                    values[light] += 1;
+                }
+            }
+            for &light in &machine.buttons[button] {
+                values[light] -= bound + 1;
+            }
+        }
+
+        let mut best = i64::MAX;
+        let mut values = vec![0; machine.target_joltage.len()];
+        dfs(machine, 0, &mut values, 0, &mut best);
+        best
+    }
+
+    #[test]
+    fn part1_example() {
+        let mut day = Day10::new();
+        day.set_input(&example_input());
+        assert_eq!(day.part1(), "7");
+    }
+
+    #[test]
+    fn joltage_solver_matches_brute_force_on_example() {
+        for line in EXAMPLE {
+            let machine = parse_machine(line);
+            assert_eq!(
+                Day10::fewest_joltage_presses(&machine),
+                brute_joltage(&machine)
+            );
+        }
+    }
+}

@@ -59,29 +59,21 @@ impl Solution for Day01 {
         zero_hits.to_string()
     }
 
-    // Walks each rotation click-by-click and returns how many times the dial crosses zero.
+    // Counts zero crossings arithmetically for each rotation and returns their total.
     fn part2(&mut self) -> String {
         let mut position: i32 = 50;
         let mut zero_hits = 0;
 
         for &rotation in &self.rotations {
-            let step = if rotation < 0 { -1 } else { 1 };
-            let mut moved = 0;
-
-            while moved != rotation {
-                position += step;
-                if position < 0 {
-                    position += 100;
-                } else if position >= 100 {
-                    position -= 100;
-                }
-
-                if position == 0 {
-                    zero_hits += 1;
-                }
-
-                moved += step;
+            if rotation >= 0 {
+                zero_hits += (position + rotation) / 100;
+            } else {
+                let distance = -rotation;
+                let clicks_to_zero = (100 - position) % 100;
+                zero_hits += (distance + clicks_to_zero) / 100;
             }
+
+            position = Self::dial_position(position + rotation);
         }
 
         zero_hits.to_string()
@@ -114,5 +106,31 @@ mod tests {
         let mut d = Day01::new();
         d.set_input(&example_input());
         assert_eq!(d.part2(), "6");
+    }
+
+    #[test]
+    fn arithmetic_crossing_count_matches_click_simulation() {
+        fn simulate(rotations: &[i32]) -> i32 {
+            let mut position = 50;
+            let mut hits = 0;
+            for &rotation in rotations {
+                let step = rotation.signum();
+                for _ in 0..rotation.unsigned_abs() {
+                    position = Day01::dial_position(position + step);
+                    hits += i32::from(position == 0);
+                }
+            }
+            hits
+        }
+
+        for first in (-250..=250).step_by(17) {
+            for second in (-250..=250).step_by(29) {
+                let rotations = [first, second, -first / 2];
+                let mut day = Day01 {
+                    rotations: rotations.to_vec(),
+                };
+                assert_eq!(day.part2(), simulate(&rotations).to_string());
+            }
+        }
     }
 }

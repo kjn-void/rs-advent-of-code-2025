@@ -1,4 +1,6 @@
 use crate::days::Solution;
+use rayon::prelude::*;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 #[derive(Clone, Copy)]
 struct Point {
@@ -179,41 +181,40 @@ impl Solution for Day09 {
         }
 
         let point_count = self.red_tiles.len();
-        let mut best: i64 = 0;
+        let best = AtomicI64::new(0);
+        let solver = &*self;
 
-        for i in 0..point_count {
-            let a = self.red_tiles[i];
-            for j in i + 1..point_count {
-                let b = self.red_tiles[j];
-
+        (0..point_count).into_par_iter().for_each(|i| {
+            let a = solver.red_tiles[i];
+            for &b in &solver.red_tiles[i + 1..] {
                 let x1 = a.x.min(b.x);
                 let x2 = a.x.max(b.x);
                 let y1 = a.y.min(b.y);
                 let y2 = a.y.max(b.y);
 
                 let area = (x2 - x1 + 1) as i64 * (y2 - y1 + 1) as i64;
-                if area <= best {
+                if area <= best.load(Ordering::Relaxed) {
                     continue;
                 }
 
-                if self.rectangle_cut_by_polygon(x1, y1, x2, y2) {
+                if solver.rectangle_cut_by_polygon(x1, y1, x2, y2) {
                     continue;
                 }
 
                 let opposite_corner_a = Point { x: x1, y: y2 };
                 let opposite_corner_b = Point { x: x2, y: y1 };
 
-                if !self.point_inside_or_on(opposite_corner_a)
-                    || !self.point_inside_or_on(opposite_corner_b)
+                if !solver.point_inside_or_on(opposite_corner_a)
+                    || !solver.point_inside_or_on(opposite_corner_b)
                 {
                     continue;
                 }
 
-                best = area;
+                best.fetch_max(area, Ordering::Relaxed);
             }
-        }
+        });
 
-        best.to_string()
+        best.into_inner().to_string()
     }
 }
 
